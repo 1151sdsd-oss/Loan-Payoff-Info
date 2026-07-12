@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>貸款匯款結清資料詢問系統</title>
+  <title>貸款匯款結清資料詢問與套印系統</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts Inter & Noto Sans TC -->
@@ -35,6 +35,10 @@
 
     /* 實體匯款單特定字體與列印設定 */
     @media print {
+      @page {
+        size: A4 portrait;
+        margin: 5mm;
+      }
       body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
@@ -43,6 +47,9 @@
         visibility: hidden;
       }
       #print-section, #print-section * {
+        visibility: visible;
+      }
+      #batch-print-section, #batch-print-section * {
         visibility: visible;
       }
       #print-section {
@@ -57,12 +64,47 @@
       .no-print {
         display: none !important;
       }
-      /* 確保背景圖於列印時能正確顯現 (改用 <img> 標籤當底圖,不受「背景圖形」選項影響) */
+      /* 確保背景圖於列印時能正確顯現 */
       #print-target-slip {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
+      body.batch-printing #print-section {
+        display: none !important;
+      }
+      #batch-print-section {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .batch-print-page {
+        width: 100%;
+        height: 287mm;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 3mm;
+        page-break-after: always;
+        break-after: page;
+      }
+      .batch-print-page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+      .batch-print-slip {
+        width: 200mm !important;
+        max-width: 200mm !important;
+        flex: 0 0 auto;
+        margin: 0;
+        /* 批次列印時維持附言等 cqw 相對字級的定位基準，與單筆預覽一致 */
+        container-type: inline-size;
+      }
     }
+
+    #batch-print-section { display: none; }
     
     /* 網頁上特殊縱向書寫文字支援 */
     .vertical-text {
@@ -78,8 +120,8 @@
       position: absolute;
       z-index: 10; /* 確保套印文字絕對能浮在實體 img 標籤底圖之上 */
       font-weight: 700;
-      color: #1a365d; /* 仿真深藍色鋼筆/原子筆墨水色 */
-      font-size: 2.3cqw;
+      color: #000000; /* 高仿真黑墨水色 */
+      font-size: 2.1cqw;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -97,8 +139,8 @@
           <i data-lucide="file-text" class="w-6 h-6"></i>
         </div>
         <div>
-          <h1 class="text-lg font-bold text-slate-800 leading-tight">結清資訊填報系統</h1>
-          <p class="text-xs text-slate-500 font-medium">貸款匯款結清資料詢問與整理</p>
+          <h1 class="text-lg font-bold text-slate-800 leading-tight">結清資訊填報與套印系統</h1>
+          <p class="text-xs text-slate-500 font-medium">貸款匯款結清資料套印與整理</p>
         </div>
       </div>
       
@@ -128,9 +170,15 @@
           <i data-lucide="landmark" class="w-56 h-56"></i>
         </div>
         <div class="relative z-10 max-w-3xl">
-          <h2 class="text-2xl md:text-3xl font-bold mb-4 flex items-center gap-2">
-            貸款結清資料填報表單
-          </h2>
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <h2 class="text-2xl md:text-3xl font-bold flex items-center gap-2">
+              貸款結清資料填報表單
+            </h2>
+            <button type="button" onclick="loadDemoData()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md self-start md:self-auto">
+              <i data-lucide="zap" class="w-4 h-4 fill-slate-950"></i>
+              ⚡ 載入測試 Demo 數據
+            </button>
+          </div>
           <div class="text-blue-100 text-sm md:text-base leading-relaxed space-y-4">
             <p>
               親愛的客戶您好，為能順利辦理您的貸款匯款結清與後續塗銷手續，請協助填寫以下資訊，並授權永豐銀行協助照會結清資料。
@@ -195,7 +243,7 @@
                 <p id="dateFeedback" class="mt-1 text-xs text-blue-600 font-medium min-h-[1rem]"></p>
               </div>
 
-              <!-- 結清種類 (ComboBox 互斥) -->
+              <!-- 結清種類 -->
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">
                   結清貸款種類 <span class="text-rose-500">*</span>
@@ -315,6 +363,7 @@
           </div>
         </div>
 
+        <!-- 第三部分 -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div class="flex items-center gap-2.5 mb-3 border-b border-slate-100 pb-3">
             <span class="bg-indigo-50 text-indigo-600 p-1.5 rounded-lg"><i data-lucide="shield-check" class="w-5 h-5"></i></span>
@@ -358,6 +407,7 @@
           </div>
         </div>
 
+        <!-- 第四部分 -->
         <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
           <div class="flex items-center gap-2.5 mb-5 border-b border-slate-100 pb-3">
             <span class="bg-amber-50 text-amber-600 p-1.5 rounded-lg"><i data-lucide="help-circle" class="w-5 h-5"></i></span>
@@ -447,6 +497,24 @@
           </div>
         </div>
 
+        <!-- ================= 第五部分：實體套印進階設定 (已移除代理人同步功能) ================= -->
+        <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center gap-2.5 mb-5 border-b border-slate-100 pb-3">
+            <span class="bg-violet-50 text-violet-600 p-1.5 rounded-lg"><i data-lucide="printer" class="w-5 h-5"></i></span>
+            <h3 class="text-lg font-bold text-slate-800">第五部分：臨櫃匯款單套印設定 (選填)</h3>
+          </div>
+          <div class="grid grid-cols-1 gap-6">
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                存戶簽章處套印文字
+              </label>
+              <input type="text" id="signatureText" value="請准予減免手續費：" placeholder="請輸入欲套印於存戶簽章處的提醒文字" 
+                class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm outline-none">
+              <p class="mt-1 text-xs text-slate-400">此文字將套印於匯款單中右側簽章格位上方 (如範例 755326 所示)。</p>
+            </div>
+          </div>
+        </div>
+
         <!-- 按鈕操作區 -->
         <div class="flex items-center justify-end gap-3 pt-4">
           <button id="btn-cancel-edit" type="button" onclick="cancelEditing()" class="hidden px-6 py-3 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 text-sm font-semibold transition-colors">
@@ -486,9 +554,9 @@
             <i data-lucide="download" class="w-4 h-4"></i>
             匯出 Excel/CSV 檔
           </button>
-          <button onclick="sendEmailWithReport()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm">
+          <button onclick="sendEmailWithReport()" title="請先在下方表格勾選要寄送的資料" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm">
             <i data-lucide="mail" class="w-4 h-4"></i>
-            一鍵寄送 E-mail
+            寄送已選資料 E-mail
           </button>
         </div>
       </div>
@@ -503,17 +571,19 @@
           </div>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i data-lucide="banknote" class="w-6 h-6"></i></div>
+          <div class="bg-amber-50 text-amber-600 p-3 rounded-xl"><i data-lucide="home" class="w-6 h-6"></i></div>
           <div>
-            <span class="text-slate-400 text-xs font-medium">累計結清總額</span>
-            <h4 id="stat-amount" class="text-xl font-extrabold text-slate-800 mt-0.5">$0 元</h4>
+            <span class="text-slate-400 text-xs font-medium">房屋貸款結清總額</span>
+            <h4 id="stat-mortgage-amount" class="text-lg font-extrabold text-slate-800 mt-0.5">$0 元</h4>
+            <p id="stat-mortgage-upper" class="text-xs text-slate-500 mt-1">國字大寫：零元</p>
           </div>
         </div>
         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div class="bg-amber-50 text-amber-600 p-3 rounded-xl"><i data-lucide="home" class="w-6 h-6"></i></div>
+          <div class="bg-emerald-50 text-emerald-600 p-3 rounded-xl"><i data-lucide="banknote" class="w-6 h-6"></i></div>
           <div>
-            <span class="text-slate-400 text-xs font-medium">房屋貸款結清</span>
-            <h4 id="stat-mortgage" class="text-2xl font-extrabold text-slate-800 mt-0.5">0 筆</h4>
+            <span class="text-slate-400 text-xs font-medium">其他借款結清總額</span>
+            <h4 id="stat-other-amount" class="text-lg font-extrabold text-slate-800 mt-0.5">$0 元</h4>
+            <p id="stat-other-upper" class="text-xs text-slate-500 mt-1">國字大寫：零元</p>
           </div>
         </div>
       </div>
@@ -529,7 +599,14 @@
             <option value="ALL">全部種類</option>
             <option value="房貸">房屋貸款</option>
             <option value="信貸">信用貸款</option>
+            <option value="信用卡">信用卡</option>
+            <option value="車貸">車貸</option>
+            <option value="借款">借款</option>
           </select>
+          <button onclick="printSelectedRemitSlips()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            列印已選
+          </button>
           <button onclick="clearAllData()" class="text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
             清空所有數據
@@ -543,6 +620,7 @@
           <table class="w-full text-left border-collapse">
             <thead>
               <tr class="bg-slate-50/75 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                <th class="py-3.5 px-4 md:px-6 w-10"><input id="selectAllSubmissions" type="checkbox" onchange="toggleSelectAllVisible(this.checked)" title="選取目前篩選結果"></th>
                 <th class="py-3.5 px-4 md:px-6">預定日期/銀行</th>
                 <th class="py-3.5 px-4 md:px-6">借款人/貸款種類</th>
                 <th class="py-3.5 px-4 md:px-6">戶名/金額</th>
@@ -656,6 +734,7 @@
   </div>
 
 
+  <!-- ================= STREAMING_CHUNK: Setup high-fidelity remittance preview container with 1000007877_2.jpg background... -->
   <!-- ================= STREAMING_CHUNK: 重建高度逼真的永豐銀行實體匯款單預覽 (1000007877_2.jpg 規格) ================= -->
   <div id="remitSlipModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4">
     <div id="print-section" class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl overflow-hidden flex flex-col max-h-[95vh]">
@@ -663,7 +742,7 @@
       <div class="bg-slate-800 text-white px-6 py-4 flex items-center justify-between no-print">
         <div class="flex items-center gap-2">
           <i data-lucide="printer" class="text-emerald-400 w-5 h-5"></i>
-          <h4 class="font-bold text-md">永豐銀行 新臺幣匯款申請書(代傳票) 仿真套印</h4>
+          <h4 class="font-bold text-md">永豐銀行 新臺幣匯款申請書(代傳票) 仿真對正套印</h4>
         </div>
         <div class="flex items-center gap-2">
           <button onclick="triggerPrintSlip()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md">
@@ -678,18 +757,17 @@
 
       <!-- 匯款單紙張主體 (支援容器查詢) -->
       <div class="p-4 md:p-8 overflow-y-auto flex-1 bg-slate-100 flex justify-center" id="print-container-wrapper">
-        <!-- 套印本體：改用實體 <img> 作為底層，確保瀏覽器即使預設未勾選「列印背景圖形」也能百分之百印出底圖！ -->
         <div id="print-target-slip" class="relative w-full max-w-[960px] aspect-[1000/512] rounded-sm shadow-md overflow-hidden select-none bg-white">
           
-          <!-- 實體底圖：最底層 (z-0)，瀏覽器一定會列印 -->
+          <!-- 實體底圖：最底層 (z-0)，瀏覽器一定會列印。修正為正確的空白底圖檔名 1000007877_2.jpg -->
           <img src="1000007877_2.jpg" class="absolute inset-0 w-full h-full z-0 pointer-events-none object-fill" alt="永豐銀行匯款單底圖">
 
-          <!-- 日期 (民國年、月、日) -->
-          <div id="slip-year" class="slip-text" style="left: 41.5%; top: 7.2%; width: 4.0%;"></div>
-          <div id="slip-month" class="slip-text" style="left: 47.0%; top: 7.2%; width: 3.5%;"></div>
-          <div id="slip-day" class="slip-text" style="left: 52.2%; top: 7.2%; width: 3.5%;"></div>
+          <!-- 日期 (民國年、月、日 - 比照 755326 完美向左且對正) -->
+          <div id="slip-year" class="slip-text" style="left: 37.0%; top: 10.0%; width: 5.0%;"></div>
+          <div id="slip-month" class="slip-text" style="left: 47.0%; top: 10.0%; width: 3.5%;"></div>
+          <div id="slip-day" class="slip-text" style="left: 53.5%; top: 10.0%; width: 4.0%;"></div>
 
-          <!-- 本行扣款帳號 (留空防篡改) - 加入 z-10 置頂 -->
+          <!-- 本行扣款帳號 (留空防篡改) -->
           <div style="position: absolute; left: 17.5%; top: 13.5%; width: 51.5%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr); z-index: 10;">
             <div class="slip-text !position-static"></div><div class="slip-text !position-static"></div>
             <div class="slip-text !position-static"></div><div class="slip-text !position-static"></div>
@@ -700,49 +778,49 @@
             <div class="slip-text !position-static"></div><div class="slip-text !position-static"></div>
           </div>
 
-          <!-- 匯款金額大寫格子 (億~元整) -->
-          <div id="slip-box-yi" class="slip-text" style="left: 21.3%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-qianwan" class="slip-text" style="left: 26.9%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-baiwan" class="slip-text" style="left: 32.5%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-shiwan" class="slip-text" style="left: 38.1%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-wan" class="slip-text" style="left: 43.7%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-qian" class="slip-text" style="left: 49.3%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-bai" class="slip-text" style="left: 54.9%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-shi" class="slip-text" style="left: 60.5%; top: 21.0%; width: 3.1%;"></div>
-          <div id="slip-box-yuan" class="slip-text" style="left: 66.1%; top: 21.0%; width: 3.1%;"></div>
+          <!-- 匯款金額大寫 (比照 755326 高精度均勻等距定位覆蓋，不帶單位字樣以免重疊) -->
+          <div id="slip-box-yi" class="slip-text" style="left: 20.5%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-qianwan" class="slip-text" style="left: 26.8%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-baiwan" class="slip-text" style="left: 31.9%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-shiwan" class="slip-text" style="left: 37.5%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-wan" class="slip-text" style="left: 41.9%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-qian" class="slip-text" style="left: 47.3%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-bai" class="slip-text" style="left: 52.4%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-shi" class="slip-text" style="left: 57.7%; top: 26.5%; width: 5.0%; font-size: 2.3cqw;"></div>
+          <div id="slip-box-yuan" class="slip-text" style="left: 62.1%; top: 26.5%; width: 7.0%; font-size: 2.3cqw; justify-content: center;"></div>
 
-          <!-- 收款行與分行 -->
-          <div id="slip-remit-bank" class="slip-text" style="left: 14.0%; top: 28.0%; width: 23%; justify-content: flex-start; padding-left: 1%;"></div>
-          <div id="slip-remit-branch" class="slip-text" style="left: 47.5%; top: 28.0%; width: 17%; justify-content: flex-start; padding-left: 1%;"></div>
+          <!-- 收款行與分行 (比照 755326 精準向右對齊 clearance) -->
+          <div id="slip-remit-bank" class="slip-text" style="left: 21.5%; top: 33.5%; width: 23%; justify-content: flex-start;"></div>
+          <div id="slip-remit-branch" class="slip-text" style="left: 49.5%; top: 33.5%; width: 17%; justify-content: flex-start;"></div>
 
-          <!-- 收款人帳號 (14格水平橫排，隱藏格線) - 加入 z-10 置頂 -->
-          <div id="slip-account-grid" style="position: absolute; left: 14.1%; top: 34.2%; width: 53.5%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr); z-index: 10;">
+          <!-- 收款人帳號 (14格水平橫排，隱藏格線) - 比照 755326 高精度完美嵌合 -->
+          <div id="slip-account-grid" style="position: absolute; left: 21.2%; top: 38.2%; width: 50.0%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr); z-index: 10;">
             <!-- JS 動態插入 14 個無框字元容器 -->
           </div>
 
-          <!-- 收款人戶名 -->
-          <div id="slip-remit-name" class="slip-text" style="left: 14.0%; top: 41.0%; width: 53.5%; justify-content: flex-start; padding-left: 1%;"></div>
+          <!-- 收款人戶名 (比照 755326 消除與戶名標籤重疊) -->
+          <div id="slip-remit-name" class="slip-text" style="left: 21.5%; top: 46.5%; width: 50.0%; justify-content: flex-start;"></div>
 
-          <!-- 匯款人 (姓名、統編、電話) -->
-          <div id="slip-borrower-name" class="slip-text" style="left: 14.0%; top: 48.0%; width: 20%; justify-content: flex-start; padding-left: 1%;"></div>
-          <div id="slip-borrower-id" class="slip-text" style="left: 38.0%; top: 48.0%; width: 17%; justify-content: flex-start; padding-left: 1%; font-family: monospace;"></div>
-          <div id="slip-borrower-phone" class="slip-text" style="left: 58.5%; top: 48.0%; width: 10%; justify-content: flex-start; padding-left: 1%; font-size: 2.0cqw;"></div>
+          <!-- 匯款人 (比照 755326 整排右移消除與標籤重疊) -->
+          <div id="slip-borrower-name" class="slip-text" style="left: 16.5%; top: 55.2%; width: 20%; justify-content: flex-start;"></div>
+          <div id="slip-borrower-id" class="slip-text" style="left: 41.5%; top: 55.2%; width: 17%; justify-content: flex-start; font-family: monospace;"></div>
+          <div id="slip-borrower-phone" class="slip-text" style="left: 57.5%; top: 55.2%; width: 12%; justify-content: flex-start; font-size: 1.6cqw;"></div>
 
-          <!-- 代理人 (依要求維持空白) -->
-          <div id="slip-agent-name" class="slip-text" style="left: 14.0%; top: 55.0%; width: 20%; justify-content: flex-start; padding-left: 1%; color: #4a5568;"></div>
-          <div id="slip-agent-id" class="slip-text" style="left: 38.0%; top: 55.0%; width: 17%; justify-content: flex-start; padding-left: 1%; font-family: monospace; color: #4a5568;"></div>
-          <div id="slip-agent-phone" class="slip-text" style="left: 58.5%; top: 55.0%; width: 10%; justify-content: flex-start; padding-left: 1%; font-size: 2.0cqw; color: #1a365d;"></div>
+          <!-- 代理人（由會員名冊資料自動帶入） -->
+          <div id="slip-agent-name" class="slip-text" style="left: 16.5%; top: 64.2%; width: 20%; justify-content: flex-start;"></div>
+          <div id="slip-agent-id" class="slip-text" style="left: 41.5%; top: 64.2%; width: 17%; justify-content: flex-start; font-family: monospace;"></div>
+          <div id="slip-agent-phone" class="slip-text" style="left: 57.5%; top: 64.2%; width: 12%; justify-content: flex-start; font-size: 1.5cqw;"></div>
 
-          <!-- 附言 (匯款備註) -->
-          <div id="slip-memo" class="slip-text" style="left: 13.5%; top: 63.5%; width: 20%; height: 15%; justify-content: flex-start; align-items: flex-start; text-align: left; white-space: normal; line-height: 1.2; font-size: 1.8cqw; padding: 0.5% 1%;"></div>
+          <!-- 附言 (匯款備註 - 比照 755326 縮小字體且定位於底部附言大空格) -->
+          <div id="slip-memo" class="slip-text" style="left: 16.5%; top: 73.5%; width: 14.5%; height: 14.0%; justify-content: flex-start; align-items: flex-start; text-align: left; white-space: normal; line-height: 1.25; font-size: 1.35cqw; padding: 0.5% 1%;"></div>
 
-          <!-- 存戶簽章指定文字位置 -->
-          <div id="slip-signature" class="slip-text" style="left: 71.5%; top: 43.5%; width: 25.0%; justify-content: flex-start; padding-left: 1%; font-size: 2.0cqw;">請准予減免手續費：</div>
+          <!-- 存戶簽章指定文字位置 (比照 755326 完美右側置中) -->
+          <div id="slip-signature" class="slip-text" style="left: 74.0%; top: 28.5%; width: 20%; justify-content: flex-start; font-size: 2.0cqw;">請准予減免手續費：</div>
 
           <!-- 收款行代號、手續費、合計 (右下角核算欄位維持空白) -->
           <div class="slip-text" style="left: 71.0%; top: 55.0%; width: 6.5%;"></div>
-          <div class="slip-text" style="left: 81.0%; top: 55.0%; width: 6.5%;"></div> <!-- 手續費維持空白 -->
-          <div id="slip-total-amount" class="slip-text" style="left: 81.0%; top: 66.0%; width: 15%; justify-content: flex-start; padding-left: 2%; font-size: 2.1cqw;"></div> <!-- 合計維持空白 -->
+          <div class="slip-text" style="left: 81.0%; top: 55.0%; width: 6.5%;"></div> 
+          <div id="slip-total-amount" class="slip-text" style="left: 81.0%; top: 66.0%; width: 15%; justify-content: flex-start; padding-left: 2%; font-size: 2.1cqw;"></div> 
 
         </div>
       </div>
@@ -764,15 +842,33 @@
   <!-- 頁尾 -->
   <footer class="bg-white border-t border-slate-200 py-6 mt-12 text-center text-xs text-slate-400 no-print">
     <div class="max-w-6xl mx-auto px-4 space-y-1">
-      <p>© 2026 貸款結清系統. 本系統符合資訊安全及客戶資料隱私防護規範，所有輸入資料僅於此瀏覽器當前作業階段本機存留與展示。</p>
+      <p>© 2026 貸款結清套印系統. 本系統符合資訊安全及客戶資料隱私防護規範，所有輸入資料僅於此瀏覽器當前作業階段本機存留與展示。</p>
       <p>專為銀行業務助理、代書、理專以及客戶申報一鍵快速整理與備忘而生。</p>
     </div>
   </footer>
 
+  <div id="batch-print-section"></div>
+
   <script>
     let loanSubmissions = [];
+    let selectedSubmissionIds = new Set();
     let isMemoEdited = false; // 追蹤使用者是否手動編輯過備註
     let editingId = null; // 當前正在編輯的資料ID (若為null則表示為新增狀態)
+
+    // 會員名冊資料：依 R2_MEMBER.xlsx 的「代理人、身分證字號、電話、e-mail」欄位建立。
+    // 後續若名冊新增多人，可在此陣列加入資料並改寫 getActiveMemberProfile 的選取規則。
+    const memberDirectory = [
+      {
+        agentName: '廖元謄',
+        agentId: 'F124***246',
+        agentPhone: '06-2005566#305',
+        email: 'vic.liao@sinopac.com'
+      }
+    ];
+
+    function getActiveMemberProfile() {
+      return memberDirectory[0] || null;
+    }
     
     let bankList = [
       '004 臺銀', '005 土銀', '006 合庫', '007 第一', '008 華南', '009 彰銀', 
@@ -799,10 +895,52 @@
       updateAutoMemo();
     };
 
+    // 一鍵載入高仿真 Demo 測試數據 (精準對應 755326 範本)
+    function loadDemoData() {
+      document.getElementById('bankName').value = '007 第一';
+      document.getElementById('settleDate').value = new Date().toISOString().split('T')[0];
+      calculateDayOfWeek();
+      
+      document.getElementById('loanTypeHome').checked = true;
+      handleLoanTypeChange('房貸');
+      
+      document.getElementById('borrowerName').value = '測試專用客戶';
+      document.getElementById('borrowerId').value = 'TEST-DEMO-001';
+      document.getElementById('remitName').value = '測試專用客戶';
+      
+      const amtInput = document.getElementById('remitAmount');
+      amtInput.value = '3573092';
+      handleAmountBlur(amtInput);
+
+      const accInput = document.getElementById('remitAccount');
+      accInput.value = '60166225835';
+      handleAccountBlur(accInput);
+
+      document.getElementById('remitBank').value = '第一銀行';
+      document.getElementById('remitBranch').value = '台南';
+      
+      isMemoEdited = false;
+      updateAutoMemo();
+
+      document.getElementById('authName').value = '廖元謄';
+      document.getElementById('authGender').value = '先生';
+      document.getElementById('authPhone').value = '(06)2005566';
+      document.getElementById('authExt').value = '305';
+
+      // 預設問題設定
+      document.querySelector('input[name="canOnlineCancel"][value="false"]').checked = true;
+      document.querySelector('input[name="canMailCertificate"][value="true"]').checked = true;
+      toggleMailAddress(true);
+      document.getElementById('mailAddress').value = '台南市東區林森路二段88號';
+
+      document.getElementById('signatureText').value = '請准予減免手續費：';
+
+      showToast('⚡ 範本 755326 高仿真 Demo 數據已成功載入！請提交並開啟匯款單查看。', 'info');
+    }
+
     function handleQuestionChange(questionNum, value) {
       if (value === true) {
         if (questionNum === 1) {
-          // 問題 1 選擇可以，問題 2、問題 3 設為否
           const q2No = document.querySelector('input[name="canMailCertificate"][value="false"]');
           if (q2No) q2No.checked = true;
           const q3No = document.querySelector('input[name="needPickUp"][value="false"]');
@@ -810,7 +948,6 @@
           toggleMailAddress(false);
           togglePickUpDays(false);
         } else if (questionNum === 2) {
-          // 問題 2 選擇可以，問題 1、問題 3 設為否
           const q1No = document.querySelector('input[name="canOnlineCancel"][value="false"]');
           if (q1No) q1No.checked = true;
           const q3No = document.querySelector('input[name="needPickUp"][value="false"]');
@@ -818,7 +955,6 @@
           toggleMailAddress(true);
           togglePickUpDays(false);
         } else if (questionNum === 3) {
-          // 問題 3 選擇需要，問題 1、問題 2 設為否
           const q1No = document.querySelector('input[name="canOnlineCancel"][value="false"]');
           if (q1No) q1No.checked = true;
           const q2No = document.querySelector('input[name="canMailCertificate"][value="false"]');
@@ -827,7 +963,6 @@
           togglePickUpDays(true);
         }
       } else {
-        // 如果是在當前被選中的題按了「否」，則只關閉當前子輸入框
         if (questionNum === 2) {
           toggleMailAddress(false);
         } else if (questionNum === 3) {
@@ -838,23 +973,23 @@
 
     function toggleMailAddress(show) {
       const wrapper = document.getElementById('mailAddressWrapper');
-      const input = document.getElementById('mailAddress');
-      if (show) {
-        wrapper.classList.remove('hidden');
-      } else {
-        wrapper.classList.add('hidden');
+      if (wrapper) {
+        if (show) wrapper.classList.remove('hidden');
+        else wrapper.classList.add('hidden');
       }
     }
 
     function togglePickUpDays(show) {
       const wrapper = document.getElementById('pickUpDaysWrapper');
       const input = document.getElementById('pickUpDays');
-      if (show) {
-        wrapper.classList.remove('hidden');
-        input.setAttribute('required', 'required');
-      } else {
-        wrapper.classList.add('hidden');
-        input.removeAttribute('required');
+      if (wrapper) {
+        if (show) {
+          wrapper.classList.remove('hidden');
+          input.setAttribute('required', 'required');
+        } else {
+          wrapper.classList.add('hidden');
+          input.removeAttribute('required');
+        }
       }
     }
 
@@ -886,16 +1021,24 @@
       updateAutoMemo();
     }
 
+    // 備註自動預填
     function updateAutoMemo() {
       if (isMemoEdited) return;
 
       const borrowerName = document.getElementById('borrowerName').value.trim() || '{借款人姓名}';
       const borrowerId = document.getElementById('borrowerId').value.trim() || '{借款人身分證號}';
-      const loanType = getSelectedLoanType();
+      const loanTypeLabels = {
+        "房貸": "房屋貸款",
+        "信貸": "信用貸款",
+        "信用卡": "信用卡",
+        "車貸": "車貸",
+        "借款": "借款"
+      };
+      const loanType = loanTypeLabels[getSelectedLoanType()] || getSelectedLoanType();
 
       const memoTextarea = document.getElementById('remitMemo');
       if (memoTextarea) {
-        memoTextarea.value = `代償${borrowerName}${borrowerId}${loanType}，如無法取得清償證明請退匯`;
+        memoTextarea.value = `代償${borrowerName}${borrowerId}${loanType}使用、如無法取得清償證明請退匯`;
       }
     }
 
@@ -903,7 +1046,7 @@
       isMemoEdited = true;
     }
 
-    // 重設表單
+    // 重設表單 (已移除 syncAgent)
     function resetForm() {
       document.getElementById('loanForm').reset();
       isMemoEdited = false;
@@ -940,7 +1083,7 @@
         if (parsedBanks && parsedBanks.length > 0) {
           bankList = parsedBanks;
           updateR1Status(true, "已自動載入 R1_MEMBER.xls");
-          showToast("🟢 成功自動讀取並解析伺服器端 R1_MEMBER.xls 清冊！");
+          showToast("🟢 成功自動讀取並解析伺服器端 R1_MEMBER.xls 金融清冊！");
           renderBankDropdown();
         }
       } catch (err) {
@@ -1254,6 +1397,17 @@
       input.value = formatted;
     }
 
+    // HTML 逸出工具函式：避免使用者輸入的文字（姓名、地址、備註等）被當成 HTML/腳本解析執行
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
     function showToast(message, type = 'success') {
       const container = document.getElementById('toastContainer');
       const toast = document.createElement('div');
@@ -1316,7 +1470,6 @@
       const remitAmount = document.getElementById('remitAmount').value.replace(/,/g, '').trim();
       const remitAccount = document.getElementById('remitAccount').value.trim();
 
-      // 收款銀行：若空則自動預設，並呼叫 replace 去除銀行 3 碼代碼
       let remitBank = document.getElementById('remitBank').value.trim();
       if (!remitBank) {
         remitBank = bankName;
@@ -1338,9 +1491,18 @@
       const needPickUp = document.querySelector('input[name="needPickUp"]:checked').value === "true";
       const pickUpDays = needPickUp ? document.getElementById('pickUpDays').value.trim() : '';
 
+      // 套印進階資料
+      const signatureText = document.getElementById('signatureText').value.trim();
+
       const dayNames = ["日", "一", "二", "三", "四", "五", "六"];
       const dateObj = new Date(settleDate);
       const dayOfWeek = `星期${dayNames[dateObj.getDay()]}`;
+      const memberProfile = getActiveMemberProfile();
+
+      if (!memberProfile) {
+        showToast('找不到會員名冊資料，無法提交。', 'error');
+        return;
+      }
 
       if (editingId) {
         const recordIndex = loanSubmissions.findIndex(item => item.id === editingId);
@@ -1367,7 +1529,12 @@
             canMailCertificate,
             mailAddress,
             needPickUp,
-            pickUpDays
+            pickUpDays,
+            signatureText,
+            agentName: memberProfile.agentName,
+            agentId: memberProfile.agentId,
+            agentPhone: memberProfile.agentPhone,
+            agentEmail: memberProfile.email
           };
           showToast("🎉 資料修改成功！");
         }
@@ -1399,7 +1566,12 @@
           canMailCertificate,
           mailAddress,
           needPickUp,
-          pickUpDays
+          pickUpDays,
+          signatureText,
+          agentName: memberProfile.agentName,
+          agentId: memberProfile.agentId,
+          agentPhone: memberProfile.agentPhone,
+          agentEmail: memberProfile.email
         };
         loanSubmissions.unshift(newRecord);
         showToast("🎉 表單填寫成功！已為您送至後台整理系統");
@@ -1423,6 +1595,7 @@
       switchMode('admin');
     }
 
+    // 編輯載入舊有申報資料 (已移除 syncAgent)
     function editSubmission(id) {
       const record = loanSubmissions.find(item => item.id === id);
       if (!record) return;
@@ -1475,6 +1648,9 @@
       document.querySelector(`input[name="needPickUp"][value="${record.needPickUp}"]`).checked = true;
       document.getElementById('pickUpDays').value = record.pickUpDays || '';
       togglePickUpDays(record.needPickUp);
+
+      // 套印相關欄位復原
+      document.getElementById('signatureText').value = record.signatureText || '請准予減免手續費：';
 
       document.getElementById('submit-btn-text').innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> 確認修改結清資料`;
       document.getElementById('btn-cancel-edit').classList.remove('hidden');
@@ -1558,16 +1734,49 @@
 ${followUpText}`;
     }
 
+    function formatChineseCapitalAmount(amount) {
+      const number = Math.floor(Number(amount) || 0);
+      if (number === 0) return '零元';
+
+      const digits = ['零', '壹', '貳', '參', '肆', '伍', '陸', '柒', '捌', '玖'];
+      const units = ['', '拾', '佰', '仟', '萬', '拾', '佰', '仟', '億', '拾', '佰', '仟', '兆'];
+      const numberText = String(number);
+      let result = '';
+      let hasPendingZero = false;
+
+      for (let index = 0; index < numberText.length; index++) {
+        const digit = Number(numberText[index]);
+        const unitIndex = numberText.length - index - 1;
+        if (digit === 0) {
+          if (result) hasPendingZero = true;
+          continue;
+        }
+        if (hasPendingZero) {
+          result += '零';
+          hasPendingZero = false;
+        }
+        result += `${digits[digit]}${units[unitIndex] || ''}`;
+      }
+
+      return `${result.replace(/零([萬億兆])/g, '$1').replace(/零+/g, '零')}元`;
+    }
+
     function updateMetrics() {
       const total = loanSubmissions.length;
       document.getElementById('badge-count').innerText = total;
       document.getElementById('stat-total').innerText = `${total} 筆`;
 
-      const sum = loanSubmissions.reduce((acc, cur) => acc + Number(cur.remitAmount), 0);
-      document.getElementById('stat-amount').innerText = `$${sum.toLocaleString()} 元`;
+      const mortgageAmount = loanSubmissions
+        .filter(item => item.loanType === '房貸')
+        .reduce((sum, item) => sum + Number(item.remitAmount || 0), 0);
+      const otherAmount = loanSubmissions
+        .filter(item => item.loanType !== '房貸')
+        .reduce((sum, item) => sum + Number(item.remitAmount || 0), 0);
 
-      const mortgageCount = loanSubmissions.filter(item => item.loanType === '房貸').length;
-      document.getElementById('stat-mortgage').innerText = `${mortgageCount} 筆`;
+      document.getElementById('stat-mortgage-amount').innerText = `$${mortgageAmount.toLocaleString()} 元`;
+      document.getElementById('stat-mortgage-upper').innerText = `國字大寫：${formatChineseCapitalAmount(mortgageAmount)}`;
+      document.getElementById('stat-other-amount').innerText = `$${otherAmount.toLocaleString()} 元`;
+      document.getElementById('stat-other-upper').innerText = `國字大寫：${formatChineseCapitalAmount(otherAmount)}`;
     }
 
     function renderTable() {
@@ -1596,9 +1805,17 @@ ${followUpText}`;
 
       if (filtered.length === 0) {
         emptyState.classList.remove('hidden');
+        const selectAll = document.getElementById('selectAllSubmissions');
+        if (selectAll) selectAll.checked = false;
         return;
       } else {
         emptyState.classList.add('hidden');
+      }
+
+      const selectAll = document.getElementById('selectAllSubmissions');
+      if (selectAll) {
+        selectAll.checked = filtered.length > 0 && filtered.every(record => selectedSubmissionIds.has(record.id));
+        selectAll.indeterminate = !selectAll.checked && filtered.some(record => selectedSubmissionIds.has(record.id));
       }
 
       filtered.forEach(record => {
@@ -1606,31 +1823,34 @@ ${followUpText}`;
         const tr = document.createElement('tr');
         tr.className = "hover:bg-slate-50/80 transition-colors border-b border-slate-100";
 
-        const showBorrower = record.borrowerName ? `${record.borrowerName}` : '<span class="text-slate-400 italic">未填</span>';
-        const showBorrowerId = record.borrowerId ? `${record.borrowerId}` : '';
-        const showRemitBank = record.remitBank || record.bankName;
+        const showBorrower = record.borrowerName ? escapeHtml(record.borrowerName) : '<span class="text-slate-400 italic">未填</span>';
+        const showBorrowerId = record.borrowerId ? escapeHtml(record.borrowerId) : '';
+        const showRemitBank = escapeHtml(record.remitBank || record.bankName);
 
         tr.innerHTML = `
           <td class="py-4 px-4 md:px-6">
-            <div class="font-bold text-slate-800">${record.bankName}</div>
+            <input type="checkbox" class="submission-select w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500" value="${record.id}" ${selectedSubmissionIds.has(record.id) ? 'checked' : ''} onchange="toggleSelectedSubmission('${record.id}', this.checked)" aria-label="選取此筆匯款單">
+          </td>
+          <td class="py-4 px-4 md:px-6">
+            <div class="font-bold text-slate-800">${escapeHtml(record.bankName)}</div>
             <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
               <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
-              ${record.settleDate} (${record.dayOfWeek})
+              ${escapeHtml(record.settleDate)} (${escapeHtml(record.dayOfWeek)})
             </div>
           </td>
           <td class="py-4 px-4 md:px-6">
             <div class="font-bold text-slate-800">${showBorrower}</div>
             <div class="text-xs text-slate-500 font-mono">${showBorrowerId}</div>
-            <div class="mt-1"><span class="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${record.loanType}</span></div>
+            <div class="mt-1"><span class="bg-blue-50 text-blue-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${escapeHtml(record.loanType)}</span></div>
           </td>
           <td class="py-4 px-4 md:px-6">
-            <div class="font-semibold text-slate-800">${record.remitName}</div>
+            <div class="font-semibold text-slate-800">${escapeHtml(record.remitName)}</div>
             <div class="text-xs text-emerald-600 font-extrabold mt-0.5">${formattedAmount}</div>
           </td>
           <td class="py-4 px-4 md:px-6">
             <div class="font-semibold text-xs text-slate-700">${showRemitBank}</div>
-            <div class="text-xs text-slate-500 font-mono tracking-wide mt-0.5">${record.remitAccount}</div>
-            <div class="text-xs text-slate-400 mt-0.5">${record.remitBranch}</div>
+            <div class="text-xs text-slate-500 font-mono tracking-wide mt-0.5">${escapeHtml(record.remitAccount)}</div>
+            <div class="text-xs text-slate-400 mt-0.5">${escapeHtml(record.remitBranch)}</div>
           </td>
           <td class="py-4 px-4 md:px-6 text-right">
             <div class="flex items-center justify-end gap-1.5 flex-wrap">
@@ -1661,6 +1881,26 @@ ${followUpText}`;
       });
 
       lucide.createIcons();
+    }
+
+    function toggleSelectedSubmission(id, isSelected) {
+      if (isSelected) {
+        selectedSubmissionIds.add(id);
+      } else {
+        selectedSubmissionIds.delete(id);
+      }
+      renderTable();
+    }
+
+    function toggleSelectAllVisible(isSelected) {
+      document.querySelectorAll('.submission-select').forEach(checkbox => {
+        if (isSelected) {
+          selectedSubmissionIds.add(checkbox.value);
+        } else {
+          selectedSubmissionIds.delete(checkbox.value);
+        }
+      });
+      renderTable();
     }
 
     function copyRawText(id) {
@@ -1714,11 +1954,11 @@ ${followUpText}`;
       if (record.canOnlineCancel) {
         flowHtml = `<div class="flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 font-bold"></i> 後續作業方式：原貸款行可代為【線上塗銷】</div>`;
       } else if (record.canMailCertificate) {
-        flowHtml = `<div class="flex items-start gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 mt-0.5 font-bold"></i> 後續作業方式：原行協助【郵寄清償證明】<br>&nbsp;&nbsp;&nbsp;&nbsp;寄送地址為：${record.mailAddress || '未填寫'}</div>`;
+        flowHtml = `<div class="flex items-start gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 mt-0.5 font-bold"></i> 後續作業方式：原行協助【郵寄清償證明】<br>&nbsp;&nbsp;&nbsp;&nbsp;寄送地址為：${escapeHtml(record.mailAddress) || '未填寫'}</div>`;
       } else if (record.needPickUp) {
         flowHtml = `<div class="flex items-center gap-1.5"><i data-lucide="check" class="w-4 h-4 text-emerald-500 font-bold"></i> 後續作業方式：需至分行【親自領取清償證明】（${record.pickUpDays || '0'} 工作天可領）</div>`;
       } else {
-        flowHtml = `<div class="flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4 text-slate-400"></i> 後續作業方式：皆否 (無塗銷或領取需求)</div>`;
+        flowHtml = `<div class="flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4 text-slate-400"></i> 後續作業方式：皆否 (無塗銷 or 領取需求)</div>`;
       }
       document.getElementById('detailFlows').innerHTML = flowHtml;
 
@@ -1751,6 +1991,7 @@ ${followUpText}`;
           cancelEditing();
         }
         loanSubmissions.splice(index, 1);
+        selectedSubmissionIds.delete(id);
         updateMetrics();
         renderTable();
         showToast("資料已成功移除", "info");
@@ -1759,130 +2000,133 @@ ${followUpText}`;
 
     function clearAllData() {
       loanSubmissions = [];
+      selectedSubmissionIds.clear();
       editingId = null;
       updateMetrics();
       renderTable();
       showToast("已清空所有報表資料", "info");
     }
 
-    function convertToChineseBigNumber(num) {
-      if (isNaN(num)) return "";
-      const strNum = String(Math.floor(num));
-      const digits = ["零", "壹", "貳", "參", "肆", "伍", "陸", "柒", "捌", "玖"];
-      const units = ["", "拾", "佰", "仟"];
-      const bigUnits = ["", "萬", "億", "兆"];
-      let result = "";
-      let zeroCount = 0;
-      
-      for (let i = 0; i < strNum.length; i++) {
-        const digit = Number(strNum[i]);
-        const position = strNum.length - 1 - i;
-        const unitIndex = position % 4;
-        const bigUnitIndex = Math.floor(position / 4);
-        
-        if (digit === 0) {
-          zeroCount++;
-        } else {
-          if (zeroCount > 0) {
-            result += "零";
-            zeroCount = 0;
-          }
-          result += digits[digit] + units[unitIndex];
-        }
-        
-        if (unitIndex === 0 && bigUnitIndex > 0) {
-          if (result.slice(-1) !== "零") {
-            result += bigUnits[bigUnitIndex];
-          } else if (result.length > 1) {
-            result = result.slice(0, -1) + bigUnits[bigUnitIndex];
-          }
-        }
-      }
-      
-      if (result === "") return "零元整";
-      return result + "元整";
+    // 依據 755326 完美生成純大寫數字 (前導零自動轉為"*", 中間零則保留為"零")
+    function getSlipElement(slip, id) {
+      return slip.querySelector(`[id="${id}"]`);
     }
 
-    function fillAmountToSinoPacGrid(num) {
+    function fillAmountToSinoPacGrid(num, slip = document) {
       const digits = ["零", "壹", "貳", "參", "肆", "伍", "陸", "柒", "捌", "玖"];
-      // 從 10^8 (億) 到 10^0 (元)
       const positions = [100000000, 10000000, 1000000, 100000, 10000, 1000, 100, 10, 1];
       const gridIds = [
         'slip-box-yi', 'slip-box-qianwan', 'slip-box-baiwan', 'slip-box-shiwan',
         'slip-box-wan', 'slip-box-qian', 'slip-box-bai', 'slip-box-shi', 'slip-box-yuan'
       ];
-      
-      let hasStarted = false;
+
+      let hasStarted = false; // 追蹤是否已遇到第一個非零數字 (即前導零已結束)
+
       for (let i = 0; i < positions.length; i++) {
         const val = Math.floor(num / positions[i]) % 10;
-        const element = document.getElementById(gridIds[i]);
+        const element = slip === document ? document.getElementById(gridIds[i]) : getSlipElement(slip, gridIds[i]);
         if (element) {
-          if (val > 0) {
-            element.innerText = digits[val];
-            hasStarted = true;
-          } else {
+          if (val === 0) {
             if (hasStarted) {
-              // 數值中間的空位，補「零」字
+              // 中間零：保留「零」
               element.innerText = "零";
             } else {
-              // 前面的空白高位數，補防偽「*」字
+              // 前導零：自動套印為「*」
               element.innerText = "*";
             }
+          } else {
+            hasStarted = true;
+            element.innerText = digits[val];
           }
         }
       }
+    }
+
+    function populateRemitSlip(slip, record) {
+      if (record.settleDate) {
+        const d = new Date(record.settleDate);
+        getSlipElement(slip, 'slip-year').innerText = d.getFullYear() - 1911;
+        getSlipElement(slip, 'slip-month').innerText = String(d.getMonth() + 1);
+        getSlipElement(slip, 'slip-day').innerText = String(d.getDate());
+      }
+
+      let cleanBank = record.remitBank || record.bankName;
+      cleanBank = cleanBank.replace(/銀行/g, '').replace(/^\d{3}\s*/, '').trim();
+      getSlipElement(slip, 'slip-remit-bank').innerText = cleanBank;
+      getSlipElement(slip, 'slip-remit-branch').innerText = record.remitBranch;
+      getSlipElement(slip, 'slip-remit-name').innerText = record.remitName;
+
+      const cleanAccount = record.remitAccount.replace(/-/g, '');
+      const gridContainer = getSlipElement(slip, 'slip-account-grid');
+      gridContainer.innerHTML = '';
+      for (let i = 0; i < 14; i++) {
+        const digitChar = cleanAccount[i] || '';
+        const cell = document.createElement('div');
+        cell.className = "flex items-center justify-center font-mono font-bold text-slate-900";
+        cell.style.fontSize = "2.3cqw";
+        cell.innerText = digitChar;
+        gridContainer.appendChild(cell);
+      }
+
+      fillAmountToSinoPacGrid(Number(record.remitAmount), slip);
+      getSlipElement(slip, 'slip-total-amount').innerText = '';
+
+      getSlipElement(slip, 'slip-memo').innerText = record.remitMemo || '無';
+      getSlipElement(slip, 'slip-borrower-name').innerText = '永豐銀行東台南分行';
+      getSlipElement(slip, 'slip-borrower-id').innerText = '16841423';
+      getSlipElement(slip, 'slip-borrower-phone').innerText = '(06)2005566';
+
+      getSlipElement(slip, 'slip-signature').innerText = record.signatureText || '請准予減免手續費：';
+
+      const memberProfile = getActiveMemberProfile() || {};
+      getSlipElement(slip, 'slip-agent-name').innerText = record.agentName || memberProfile.agentName || '';
+      getSlipElement(slip, 'slip-agent-id').innerText = record.agentId || memberProfile.agentId || '';
+      getSlipElement(slip, 'slip-agent-phone').innerText = record.agentPhone || memberProfile.agentPhone || '';
     }
 
     function openRemitSlipModal(id) {
       const record = loanSubmissions.find(item => item.id === id);
       if (!record) return;
 
+      populateRemitSlip(document.getElementById('print-target-slip'), record);
       const modal = document.getElementById('remitSlipModal');
-      
-      // 1. 年月日拆分 (預計結清日期)
-      if (record.settleDate) {
-        const d = new Date(record.settleDate);
-        document.getElementById('slip-year').innerText = d.getFullYear() - 1911; // 轉民國年
-        document.getElementById('slip-month').innerText = String(d.getMonth() + 1).padStart(2, '0');
-        document.getElementById('slip-day').innerText = String(d.getDate()).padStart(2, '0');
-      }
-
-      // 2. 收款人基本欄位綁定 (收款銀行已自動過濾代碼)
-      document.getElementById('slip-remit-bank').innerText = record.remitBank;
-      document.getElementById('slip-remit-branch').innerText = record.remitBranch;
-      document.getElementById('slip-remit-name').innerText = record.remitName;
-
-      // 3. 收款人帳號實體方格生成 (保證水平橫排 14 格無邊框定位)
-      const cleanAccount = record.remitAccount.replace(/-/g, '');
-      const gridContainer = document.getElementById('slip-account-grid');
-      gridContainer.innerHTML = '';
-      for (let i = 0; i < 14; i++) {
-        const digitChar = cleanAccount[i] || '';
-        const cell = document.createElement('div');
-        cell.className = "flex items-center justify-center font-mono font-bold text-slate-800";
-        cell.style.fontSize = "2.3cqw";
-        cell.innerText = digitChar;
-        gridContainer.appendChild(cell);
-      }
-
-      // 4. 財務金額 9 格連動大寫與合計綁定
-      const numAmt = Number(record.remitAmount);
-      fillAmountToSinoPacGrid(numAmt);
-      document.getElementById('slip-total-amount').innerText = ""; // 合計請先維持空白
-
-      // 5. 附言、匯款人固定資訊綁定 (東台南分行專用設定)
-      document.getElementById('slip-memo').innerText = record.remitMemo || '無';
-      document.getElementById('slip-borrower-name').innerText = "永豐銀行東台南分行";
-      document.getElementById('slip-borrower-id').innerText = "16841423";
-      document.getElementById('slip-borrower-phone').innerText = "06-2005566";
-
-      // 6. 代理人欄位設定 (僅電話固定顯示，其餘維持空白)
-      document.getElementById('slip-agent-name').innerText = '';
-      document.getElementById('slip-agent-id').innerText = '';
-      document.getElementById('slip-agent-phone').innerText = '06-2005566';
 
       modal.classList.remove('hidden');
       modal.classList.add('flex');
+    }
+
+    function printSelectedRemitSlips() {
+      const records = loanSubmissions.filter(record => selectedSubmissionIds.has(record.id));
+      if (records.length === 0) {
+        showToast('請先勾選至少一筆匯款單。', 'error');
+        return;
+      }
+
+      const batchSection = document.getElementById('batch-print-section');
+      const template = document.getElementById('print-target-slip');
+      batchSection.innerHTML = '';
+
+      let page;
+      records.forEach((record, index) => {
+        if (index % 2 === 0) {
+          page = document.createElement('div');
+          page.className = 'batch-print-page';
+          batchSection.appendChild(page);
+        }
+        const slip = template.cloneNode(true);
+        slip.classList.add('batch-print-slip');
+        populateRemitSlip(slip, record);
+        page.appendChild(slip);
+      });
+
+      const cleanUp = () => {
+        document.body.classList.remove('batch-printing');
+        batchSection.innerHTML = '';
+      };
+
+      document.body.classList.add('batch-printing');
+      window.addEventListener('afterprint', cleanUp, { once: true });
+      window.print();
     }
 
     function closeRemitSlipModal() {
@@ -1895,16 +2139,16 @@ ${followUpText}`;
       window.print();
     }
 
-    function exportCSV() {
-      if (loanSubmissions.length === 0) {
+    function exportCSV(records = loanSubmissions, filenamePrefix = '貸款結清匯款整理報表') {
+      if (!records || records.length === 0) {
         showToast("目前沒有任何數據可供匯出！", "error");
-        return;
+        return false;
       }
 
       let csvContent = "\uFEFF"; // UTF-8 BOM 防止 Excel 亂碼
       csvContent += "結清銀行,結清日期,星期,結清貸款種類,借款人姓名,借款人身分證號,收款銀行,匯款戶名,匯款金額,匯款帳號,匯款分行,匯款備註,永豐照會窗口姓名,窗口稱謂,聯絡電話,分機,可否線上塗銷,可否郵寄清償證明,掛號寄送地址,需否親領,工作天數\n";
 
-      loanSubmissions.forEach(item => {
+      records.forEach(item => {
         const row = [
           `"${item.bankName}"`,
           `"${item.settleDate}"`,
@@ -1935,25 +2179,49 @@ ${followUpText}`;
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.setAttribute("href", url);
-      link.setAttribute("download", `貸款結清匯款整理報表_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute("download", `${filenamePrefix}_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       showToast("CSV 資料表已下載成功！");
+      return true;
     }
 
+    // 將任意文字複製到剪貼簿（用於信件內容過長、無法使用 mailto 開啟時的備援方案）
+    function copyTextToClipboard(text) {
+      const tempTextArea = document.createElement("textarea");
+      tempTextArea.value = text;
+      document.body.appendChild(tempTextArea);
+      tempTextArea.select();
+      let successful = false;
+      try {
+        successful = document.execCommand('copy');
+      } catch (err) {
+        successful = false;
+      }
+      document.body.removeChild(tempTextArea);
+      return successful;
+    }
+
+    // 一鍵寄送 E-mail 函數：僅寄送使用者在後台表格中「已勾選」的資料，避免誤將全部歷史資料一併寄出
     function sendEmailWithReport() {
       if (loanSubmissions.length === 0) {
         showToast("目前沒有任何數據可供寄送！", "error");
         return;
       }
 
-      // 1. 自動下載最新匯出 CSV 檔
-      exportCSV();
+      const records = loanSubmissions.filter(record => selectedSubmissionIds.has(record.id));
+      if (records.length === 0) {
+        showToast("請先在下方表格勾選要寄送的資料筆數（避免誤將所有歷史資料一併寄出）。", "error");
+        return;
+      }
 
-      // 2. 獲取最新一筆資料做為郵件的主旨依據
-      const latestRecord = loanSubmissions[0];
+      // 僅為「已選取」的資料備份下載一份 CSV 檔（需手動附加至信件）
+      const exported = exportCSV(records, '貸款結清匯款_已選資料');
+      if (!exported) return;
+
+      const latestRecord = records[0];
       const borrowerName = latestRecord.borrowerName || "客戶";
       
       const dateObj = new Date(latestRecord.settleDate);
@@ -1962,22 +2230,72 @@ ${followUpText}`;
       const dd = String(dateObj.getDate()).padStart(2, '0');
       const yyyyMMdd = `${yyyy}${mm}${dd}`;
 
+      // 產生主旨
       const subject = `${borrowerName}_${yyyyMMdd}_結清資訊`;
 
-      // 3. 彙整多筆資料的格式化內容至內文
-      let emailBody = "您好，此信件為系統匯出之貸款匯款結清整理資料，請點擊附件查閱。以下為明細內容摘要：\n\n";
-      loanSubmissions.forEach((record, index) => {
+      // 產生結構化高可讀性的 Email 內文
+      let emailBody = `您好，此信件為系統匯出之貸款匯款結清整理資料（共 ${records.length} 筆，已為您下載一份 CSV 檔案，請務必於送出前手動附加該檔案）。以下為明細內容摘要：\n\n`;
+      
+      records.forEach((record, index) => {
         emailBody += `====================【結清申報資料 第 ${index + 1} 筆】====================\n\n`;
-        emailBody += buildFormattedText(record) + "\n\n";
+        emailBody += `銀行：${record.bankName}\n`;
+        emailBody += `日期：${record.settleDate} (${record.dayOfWeek})\n`;
+        emailBody += `借款人姓名：${record.borrowerName || '(未填寫)'}\n`;
+        emailBody += `借款人身分證號：${record.borrowerId || '(未填寫)'}\n`;
+        emailBody += `結清種類：${record.loanType}\n`;
+        emailBody += `-------------------- 匯款資訊 --------------------\n`;
+        emailBody += `匯款戶名：${record.remitName}\n`;
+        emailBody += `匯款帳號：${record.remitAccount}\n`;
+        emailBody += `收款銀行：${record.remitBank}\n`;
+        emailBody += `收款分行：${record.remitBranch}\n`;
+        emailBody += `匯款金額：$${Number(record.remitAmount).toLocaleString()}\n`;
+        emailBody += `匯款備註：${record.remitMemo}\n`;
+        emailBody += `-------------------- 照會窗口資訊 --------------------\n`;
+        emailBody += `照會窗口：${record.authName || '未填寫'} ${record.authGender || ''}\n`;
+        emailBody += `聯絡電話：${record.authPhone || '未填寫'}${record.authExt ? ' 分機：' + record.authExt : ''}\n`;
+        emailBody += `申報代理人：${record.agentName || getActiveMemberProfile()?.agentName || '未填寫'}\n`;
+        emailBody += `-------------------- 後續作業與清償證明 --------------------\n`;
+        if (record.canOnlineCancel) {
+          emailBody += `線上塗銷：可以\n`;
+        } else if (record.canMailCertificate) {
+          emailBody += `郵寄清償證明：可以\n掛號寄送地址：${record.mailAddress || '未填寫'}\n`;
+        } else if (record.needPickUp) {
+          emailBody += `親自領取：是 (約 ${record.pickUpDays || '0'} 個工作天)\n`;
+        } else {
+          emailBody += `後續作業：無特別需求\n`;
+        }
+        emailBody += `\n\n`;
       });
 
-      // 4. 開啟信箱連結
-      const recipient = "vic.liao@sinopac.com";
-      const mailtoUrl = `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-      
+      const defaultRecipient = getActiveMemberProfile()?.email;
+      const recipients = [...new Set(
+        records.map(record => record.agentEmail).filter(Boolean).concat(defaultRecipient ? [defaultRecipient] : [])
+      )];
+
+      if (recipients.length === 0) {
+        showToast('找不到會員名冊中的 E-mail，無法開啟寄信功能。', 'error');
+        return;
+      }
+
+      const mailtoUrl = `mailto:${recipients.join(',')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+
+      // mailto: 連結長度在多數瀏覽器/信箱軟體約有 1800~2000 字元左右的限制，
+      // 筆數一多容易導致郵件軟體無法開啟或內容被截斷，因此超過門檻時改為複製內文到剪貼簿
+      const MAILTO_LENGTH_LIMIT = 1800;
+      if (mailtoUrl.length > MAILTO_LENGTH_LIMIT) {
+        const copied = copyTextToClipboard(emailBody);
+        if (copied) {
+          showToast(`📋 選取的 ${records.length} 筆資料內容較長，已將信件內文複製到剪貼簿，請手動貼到新郵件中寄送（CSV 已下載）。`, 'info');
+        } else {
+          showToast('選取資料內容過長，且複製到剪貼簿失敗，請改用「匯出 CSV」功能提供資料。', 'error');
+        }
+        return;
+      }
+
+      // 開啟系統預設郵件客戶端
       window.location.href = mailtoUrl;
 
-      showToast("📩 CSV 下載成功，並已為您開啟 E-mail 發送視窗！", "info");
+      showToast("📩 CSV 已下載，請記得手動附加檔案後再送出 E-mail！", "info");
     }
   </script>
 </body>
