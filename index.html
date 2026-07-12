@@ -57,11 +57,10 @@
       .no-print {
         display: none !important;
       }
-      /* 確保背景圖於列印時能正確顯現 */
+      /* 確保背景圖於列印時能正確顯現 (改用 <img> 標籤當底圖,不受「背景圖形」選項影響) */
       #print-target-slip {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        background-image: url('1000007877_2.jpg') !important;
       }
     }
     
@@ -77,6 +76,7 @@
     }
     .slip-text {
       position: absolute;
+      z-index: 10; /* 確保套印文字絕對能浮在實體 img 標籤底圖之上 */
       font-weight: 700;
       color: #1a365d; /* 仿真深藍色鋼筆/原子筆墨水色 */
       font-size: 2.3cqw;
@@ -678,16 +678,19 @@
 
       <!-- 匯款單紙張主體 (支援容器查詢) -->
       <div class="p-4 md:p-8 overflow-y-auto flex-1 bg-slate-100 flex justify-center" id="print-container-wrapper">
-        <!-- 套印本體：以 1000007877_2.jpg 為背景，無任何格線，全部靠絕對座標套印 -->
-        <div id="print-target-slip" class="relative w-full max-w-[960px] aspect-[1000/512] bg-cover bg-no-repeat rounded-sm shadow-md overflow-hidden select-none" style="background-image: url('1000007877_2.jpg');">
+        <!-- 套印本體：改用實體 <img> 作為底層，確保瀏覽器即使預設未勾選「列印背景圖形」也能百分之百印出底圖！ -->
+        <div id="print-target-slip" class="relative w-full max-w-[960px] aspect-[1000/512] rounded-sm shadow-md overflow-hidden select-none bg-white">
           
+          <!-- 實體底圖：最底層 (z-0)，瀏覽器一定會列印 -->
+          <img src="1000007877_2.jpg" class="absolute inset-0 w-full h-full z-0 pointer-events-none object-fill" alt="永豐銀行匯款單底圖">
+
           <!-- 日期 (民國年、月、日) -->
           <div id="slip-year" class="slip-text" style="left: 41.5%; top: 7.2%; width: 4.0%;"></div>
           <div id="slip-month" class="slip-text" style="left: 47.0%; top: 7.2%; width: 3.5%;"></div>
           <div id="slip-day" class="slip-text" style="left: 52.2%; top: 7.2%; width: 3.5%;"></div>
 
-          <!-- 本行扣款帳號 (留空防篡改) -->
-          <div style="position: absolute; left: 17.5%; top: 13.5%; width: 51.5%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr);">
+          <!-- 本行扣款帳號 (留空防篡改) - 加入 z-10 置頂 -->
+          <div style="position: absolute; left: 17.5%; top: 13.5%; width: 51.5%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr); z-index: 10;">
             <div class="slip-text !position-static"></div><div class="slip-text !position-static"></div>
             <div class="slip-text !position-static"></div><div class="slip-text !position-static"></div>
             <div class="slip-text !position-static"></div><div class="slip-text !position-static"></div>
@@ -712,8 +715,8 @@
           <div id="slip-remit-bank" class="slip-text" style="left: 14.0%; top: 28.0%; width: 23%; justify-content: flex-start; padding-left: 1%;"></div>
           <div id="slip-remit-branch" class="slip-text" style="left: 47.5%; top: 28.0%; width: 17%; justify-content: flex-start; padding-left: 1%;"></div>
 
-          <!-- 收款人帳號 (14格水平橫排，隱藏格線) -->
-          <div id="slip-account-grid" style="position: absolute; left: 14.1%; top: 34.2%; width: 53.5%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr);">
+          <!-- 收款人帳號 (14格水平橫排，隱藏格線) - 加入 z-10 置頂 -->
+          <div id="slip-account-grid" style="position: absolute; left: 14.1%; top: 34.2%; width: 53.5%; height: 5.5%; display: grid; grid-template-columns: repeat(14, 1fr); z-index: 10;">
             <!-- JS 動態插入 14 個無框字元容器 -->
           </div>
 
