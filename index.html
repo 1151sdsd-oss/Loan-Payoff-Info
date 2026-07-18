@@ -128,6 +128,15 @@
       height: 4.8%;
       white-space: nowrap;
     }
+
+    /* AI 載入動態邊框漸層 */
+    @keyframes pulse-glow {
+      0%, 100% { border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 0 10px rgba(99, 102, 241, 0.1); }
+      50% { border-color: rgba(168, 85, 247, 0.7); box-shadow: 0 0 20px rgba(168, 85, 247, 0.25); }
+    }
+    .ai-loading-box {
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased">
@@ -203,29 +212,34 @@
         </div>
       </div>
 
-      <!-- ================= AI 快速智慧填單區塊 (新增) ================= -->
-      <div class="bg-white rounded-2xl p-6 border-2 border-indigo-200 bg-gradient-to-b from-indigo-50/20 to-white shadow-sm hover:shadow-md transition-shadow">
-        <div class="flex items-center gap-2.5 mb-3">
-          <span class="bg-indigo-100 text-indigo-700 p-1.5 rounded-lg">
-            <i data-lucide="cpu" class="w-5 h-5"></i>
-          </span>
-          <div>
-            <h3 class="text-base font-bold text-slate-800">AI 快速智慧填單 (關鍵字規則解析)</h3>
-            <p class="text-xs text-slate-500">貼入 LINE 對話或未整理文字，透過簡單規則（Regex Pattern Matching）自動辨識主要欄位</p>
+      <!-- ================= AI 快速智慧填單區塊 (Gemini 智慧驅動) ================= -->
+      <div id="aiBoxContainer" class="bg-white rounded-2xl p-6 border-2 border-indigo-200 bg-gradient-to-b from-indigo-50/20 to-white shadow-sm hover:shadow-md transition-all duration-300">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div class="flex items-center gap-2.5">
+            <span class="bg-gradient-to-tr from-purple-500 to-indigo-600 text-white p-2 rounded-xl shadow-sm">
+              <i data-lucide="sparkles" class="w-5 h-5 animate-pulse"></i>
+            </span>
+            <div>
+              <h3 class="text-base font-bold text-slate-800 flex items-center gap-1.5">
+                Gemini AI 快速智慧填單
+                <span class="bg-purple-100 text-purple-700 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full">高精準語意分析</span>
+              </h3>
+              <p class="text-xs text-slate-500">直接貼上混亂文字、Line 聊天紀錄，由大語言模型自動換算民國年與解析格式</p>
+            </div>
           </div>
         </div>
         
         <div class="space-y-3">
-          <textarea id="aiRawText" rows="4" placeholder="在此貼入混亂文字，例：&#10;結清銀行：007 第一銀行；預計結清日期：115年10月20日；結清貸款種類：房貸；借款人姓名：王大同；ID：A123456789；匯款金額：3,573,092元；匯款帳號：60166225835；匯款分行：台南；聯絡電話：0912345678" 
+          <textarea id="aiRawText" rows="4" placeholder="請在此直接貼入混亂文字。例如：&#10;廖專員你好，我下週四10/22要結清代償。借款人是王大同，身分證字號 A123456789。對方是華南銀行城東分行，房貸金額大約要匯 350 萬。這是對方的帳號 008123456789... 麻煩照會了，有問題打我電話 0912-345678" 
             class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all text-xs outline-none resize-none font-mono"></textarea>
           
-          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <span class="text-[11px] text-indigo-600 font-medium flex items-center gap-1">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5 animate-pulse"></i> 捕捉：結清銀行、姓名、ID、金額、帳號、分行、日期、種類、電話
+              <i data-lucide="info" class="w-3.5 h-3.5"></i> 支援口語化描述、換行、倒裝語句，自動清洗及正規化欄位
             </span>
-            <button type="button" onclick="processAiText()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md transform active:scale-[0.98]">
-              <i data-lucide="wand-2" class="w-4 h-4"></i>
-              智慧規則辨識填表
+            <button type="button" id="btn-ai-parse" onclick="processAiTextWithGemini()" class="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200 transform active:scale-[0.98]">
+              <i data-lucide="cpu" class="w-4 h-4"></i>
+              <span id="ai-btn-text">啟動 AI 智慧解讀</span>
             </button>
           </div>
         </div>
@@ -1041,9 +1055,9 @@
       document.getElementById('loanTypeHome').checked = true;
       handleLoanTypeChange('房貸');
       
-      document.getElementById('borrowerName').value = '王大同';
-      document.getElementById('borrowerId').value = 'A123456789';
-      document.getElementById('remitName').value = '王大同';
+      document.getElementById('borrowerName').value = '測試專用客戶';
+      document.getElementById('borrowerId').value = 'TEST-DEMO-001';
+      document.getElementById('remitName').value = '測試專用客戶';
       
       const amtInput = document.getElementById('remitAmount');
       amtInput.value = '3573092';
@@ -1075,15 +1089,192 @@
       showToast('⚡ 範本 755326 高仿真 Demo 數據已成功載入！請提交並開啟匯款單查看。', 'info');
     }
 
-    // ============ AI 快速智慧填單分析引擎 (關鍵字正則解析) ============
-    function processAiText() {
+    // ============ Gemini AI 智慧解讀引擎核心邏輯 ============
+    async function processAiTextWithGemini() {
       const rawText = document.getElementById('aiRawText').value.trim();
       if (!rawText) {
         showToast('請先貼入需要解析的文字！', 'error');
         return;
       }
 
-      // 建立靈活且精準的多行 Regex 模式庫 (捕捉：結清銀行, 借款人姓名, ID, 匯款金額, 匯款帳號, 匯款分行, 預計結清日期, 結清貸款種類, 聯絡電話)
+      // 取得 UI 元件並轉換為載入中狀態
+      const aiBox = document.getElementById('aiBoxContainer');
+      const btn = document.getElementById('btn-ai-parse');
+      const btnText = document.getElementById('ai-btn-text');
+      
+      aiBox.classList.add('ai-loading-box');
+      btn.disabled = true;
+      btnText.innerText = 'AI 深入解讀中...';
+
+      // 設計一個極致嚴格的 System Instruction 與 Prompt 以便 Gemini 理解所有特殊格式
+      const systemPrompt = `你是一個高度專業的台灣銀行貸款與結清照會資料分析專員。
+你的職責是從用戶提供的不規則、混亂對話紀錄、備忘錄或郵件文字中，精準提取 9 個設定的特定資訊欄位。
+
+【規則指南】：
+1. 結清銀行：必須包含行庫代碼與名稱，例如 "007 第一"、"008 華南"。如果用戶沒寫代碼但寫了"第一銀行"，請自動補齊為 "007 第一"。若不確定，就保留原有名稱。
+2. 預計結清日期：必須轉換為標準西元格式 "YYYY-MM-DD"（例如民國115年10月20日 轉為 "2026-10-20"，115/10/20 轉為 "2026-10-20"，下週一請根據今天西元2026年7月19日進行精準推算）。
+3. 結清種類：只能是 "房貸"、"信貸"、"信用卡"、"車貸"、"借款" 其中之一。
+4. 借款人姓名：通常是出現在"借款人"、"代償人"、"客戶"等名稱。
+5. 借款人身分證號：身分證字號，英文首字母必須大寫。
+6. 匯款金額：只要純數字，例如 "3573092"。如果中文寫"三百五十萬"，請換算成數字 "3500000"。
+7. 匯款帳號：只要純數字，不得包含空格、連字號等。
+8. 收款分行：不要包含「分行」二字（例如「台南分行」請轉為「台南」）。
+9. 聯絡電話：抓取聯絡人的電話或手機。
+
+你必須嚴格以符合 Schema 的 JSON 格式輸出，不得夾帶任何 Markdown 標記（如 \`\`\`json）與多餘的前言或後記贅字。`;
+
+      const userQuery = `請解讀以下這段混亂文字並回傳 JSON 結果。今天的日期是：2026年7月19日 (星期日) 。
+用戶輸入文字：
+-----------------
+${rawText}
+-----------------`;
+
+      // 採用 exponential backoff 做高可用 fetch
+      async function fetchWithRetry(url, options, retries = 3, delay = 1000) {
+        try {
+          const response = await fetch(url, options);
+          if (!response.ok) {
+            if (retries > 0 && (response.status === 429 || response.status >= 500)) {
+              await new Promise(resolve => setTimeout(resolve, delay));
+              return fetchWithRetry(url, options, retries - 1, delay * 2);
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response;
+        } catch (error) {
+          if (retries > 0) {
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, options, retries - 1, delay * 2);
+          }
+          throw error;
+        }
+      }
+
+      try {
+        const apiKey = ""; // 留空 Canvas 會在執行期自動安全注入金鑰
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+        // 使用符合 generationConfig.responseSchema 的 payload 結構
+        const payload = {
+          contents: [{ parts: [{ text: userQuery }] }],
+          systemInstruction: {
+            parts: [{ text: systemPrompt }]
+          },
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                bankName: { "type": "STRING", "description": "結清銀行，若有代碼如007，請包含代碼與簡稱，例如 '007 第一'，'004 臺銀'" },
+                settleDate: { "type": "STRING", "description": "預計結清日期，必須是 YYYY-MM-DD 格式" },
+                loanType: { "type": "STRING", "description": "結清貸款種類，只能是 '房貸'、'信貸'、'信用卡'、'車貸'、'借款' 之一" },
+                borrowerName: { "type": "STRING", "description": "借款人姓名" },
+                borrowerId: { "type": "STRING", "description": "借款人身分證號，英文首字必須大寫" },
+                remitAmount: { "type": "STRING", "description": "匯款金額，請只保留純數字" },
+                remitAccount: { "type": "STRING", "description": "匯款帳號，請只保留純數字" },
+                remitBranch: { "type": "STRING", "description": "收款分行，若結尾帶有「分行」請自動去除" },
+                authPhone: { "type": "STRING", "description": "聯絡電話" }
+              }
+            }
+          }
+        };
+
+        const response = await fetchWithRetry(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const result = await response.json();
+        const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (!candidateText) {
+          throw new Error('無法從 Gemini 獲得有效解析回覆。');
+        }
+
+        const data = JSON.parse(candidateText);
+        
+        // 將 AI 智慧提取的欄位精準注入至填報 UI 中
+        let fillCount = 0;
+
+        if (data.bankName) {
+          document.getElementById('bankName').value = data.bankName;
+          fillCount++;
+        }
+        if (data.settleDate) {
+          document.getElementById('settleDate').value = data.settleDate;
+          calculateDayOfWeek();
+          fillCount++;
+        }
+        if (data.loanType) {
+          const loanType = data.loanType;
+          const homeRadio = document.getElementById('loanTypeHome');
+          const creditRadio = document.getElementById('loanTypeCredit');
+          const otherSelect = document.getElementById('loanTypeOtherSelect');
+          
+          if (loanType === '房貸') {
+            if (homeRadio) homeRadio.checked = true;
+            handleLoanTypeChange('房貸');
+          } else if (loanType === '信貸') {
+            if (creditRadio) creditRadio.checked = true;
+            handleLoanTypeChange('信貸');
+          } else if (otherSelect) {
+            if (homeRadio) homeRadio.checked = false;
+            if (creditRadio) creditRadio.checked = false;
+            otherSelect.value = loanType;
+            handleLoanTypeOtherChange(loanType);
+          }
+          fillCount++;
+        }
+        if (data.borrowerName) {
+          document.getElementById('borrowerName').value = data.borrowerName;
+          document.getElementById('remitName').value = data.borrowerName;
+          fillCount++;
+        }
+        if (data.borrowerId) {
+          document.getElementById('borrowerId').value = data.borrowerId.toUpperCase();
+          fillCount++;
+        }
+        if (data.remitAmount) {
+          const amtInput = document.getElementById('remitAmount');
+          amtInput.value = data.remitAmount;
+          handleAmountBlur(amtInput); // 自動轉換千分位與格式化
+          fillCount++;
+        }
+        if (data.remitAccount) {
+          const accInput = document.getElementById('remitAccount');
+          accInput.value = data.remitAccount;
+          handleAccountBlur(accInput); // 自動執行 3-3-3 連字號橫排格格式化
+          fillCount++;
+        }
+        if (data.remitBranch) {
+          document.getElementById('remitBranch').value = data.remitBranch;
+          fillCount++;
+        }
+        if (data.authPhone) {
+          document.getElementById('authPhone').value = data.authPhone;
+          fillCount++;
+        }
+
+        // 成功載入與回填後
+        isMemoEdited = false;
+        updateAutoMemo(); // 根據 AI 產出的借款人姓名與種類動態生成標準對正備註
+        showToast(`✨ Gemini AI 智慧解讀成功！已精準識別並回填 ${fillCount} 個表單欄位。`, 'success');
+
+      } catch (err) {
+        console.error('Gemini AI 解析失敗，啟動 Regex 降級方案：', err);
+        // 若 Gemini API 遭遇阻擋、無網路或特殊狀況，啟動規則備降級方案
+        fallbackToRegexParser(rawText);
+      } finally {
+        // 還原 UI 狀態
+        aiBox.classList.remove('ai-loading-box');
+        btn.disabled = false;
+        btnText.innerText = '啟動 AI 智慧解讀';
+      }
+    }
+
+    // ============ AI 備用 Regex 降級規則解析引擎 ============
+    function fallbackToRegexParser(rawText) {
       const patterns = {
         bankName: /(?:結清銀行|代償銀行|銀行|行庫)[:：\s-]*([0-9a-zA-Z\u4e00-\u9fa5]+)/i,
         borrowerName: /(?:借款人姓名|借款人|客戶姓名|姓名|戶名)[:：\s-]*([\u4e00-\u9fa5a-zA-Z·]{2,10})/,
@@ -1104,13 +1295,10 @@
 
       let detectCount = 0;
 
-      // 1. 結清銀行
       if (matchResult.bankName) {
         document.getElementById('bankName').value = matchResult.bankName;
         detectCount++;
       }
-
-      // 2. 預計結清日期
       if (matchResult.settleDate) {
         const cleanDate = formatToStandardDate(matchResult.settleDate);
         if (cleanDate) {
@@ -1119,8 +1307,6 @@
           detectCount++;
         }
       }
-
-      // 3. 結清貸款種類
       if (matchResult.loanType) {
         const type = matchResult.loanType;
         const homeRadio = document.getElementById('loanTypeHome');
@@ -1141,21 +1327,15 @@
         }
         detectCount++;
       }
-
-      // 4. 借款人姓名 / 匯款戶名
       if (matchResult.borrowerName) {
         document.getElementById('borrowerName').value = matchResult.borrowerName;
         document.getElementById('remitName').value = matchResult.borrowerName;
         detectCount++;
       }
-
-      // 5. 借款人身分證號 (自動大寫)
       if (matchResult.borrowerId) {
         document.getElementById('borrowerId').value = matchResult.borrowerId.toUpperCase();
         detectCount++;
       }
-
-      // 6. 匯款金額
       if (matchResult.remitAmount) {
         const cleanAmt = matchResult.remitAmount.replace(/[^\d]/g, '');
         if (cleanAmt) {
@@ -1165,8 +1345,6 @@
           detectCount++;
         }
       }
-
-      // 7. 匯款帳號
       if (matchResult.remitAccount) {
         const cleanAcc = matchResult.remitAccount.replace(/[^\d]/g, '');
         if (cleanAcc) {
@@ -1176,15 +1354,11 @@
           detectCount++;
         }
       }
-
-      // 8. 匯款分行
       if (matchResult.remitBranch) {
         const cleanBranch = matchResult.remitBranch.replace(/分行$/, '');
         document.getElementById('remitBranch').value = cleanBranch;
         detectCount++;
       }
-
-      // 9. 聯絡電話
       if (matchResult.authPhone) {
         document.getElementById('authPhone').value = matchResult.authPhone;
         detectCount++;
@@ -1193,9 +1367,9 @@
       if (detectCount > 0) {
         isMemoEdited = false;
         updateAutoMemo();
-        showToast(`✨ AI 快速填單完成！已自動對應並回填 ${detectCount} 個主要欄位。`, 'success');
+        showToast(`⚠️ 已自動降級為 Regex 本地規則模式！成功解析並回填 ${detectCount} 個主要欄位。`, 'info');
       } else {
-        showToast('無法辨識相關關鍵字，請嘗試包含「結清銀行」、「借款人姓名」等標籤。', 'error');
+        showToast('無法辨識相關關鍵字，請嘗試改用手動填單。', 'error');
       }
     }
 
