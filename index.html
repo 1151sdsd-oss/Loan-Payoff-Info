@@ -1556,6 +1556,16 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
               <label class="block text-xs font-bold text-slate-700 mb-1.5">聯絡電話 <span class="text-slate-400">(選填)</span></label>
               <select id="map-authPhone" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
             </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">身分證字號 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-borrowerId" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">分機號碼 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-authExt" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
           </div>
         </div>
       </div>
@@ -2820,36 +2830,47 @@ ${rawText}
     // 開啟自訂對應配對視窗，執行同義詞預先選取 (含 5 核心必填與 3 增強選填)
     function openHeaderMappingModal(headers) {
       const mappingConfigs = [
-        { id: 'map-bankName', keywords: ['銀行', '行庫', 'bank', '結清銀行', '代償銀行'] },
-        { id: 'map-borrowerName', keywords: ['姓名', '戶名', 'customer', 'name', '借款人', '借款人姓名', '匯款戶名'] },
-        { id: 'map-remitAmount', keywords: ['金額', '本利', 'amount', '結清金額', '代償', '匯款金額'] },
-        { id: 'map-remitAccount', keywords: ['帳號', 'account', '帳', '號碼', '匯款帳號'] },
-        { id: 'map-remitBranch', keywords: ['分行', 'branch', '分', '匯款分行', '收款分行'] },
-        { id: 'map-settleDate', keywords: ['日期', '預計', '預定', '結清日期', '預計結清日期', 'date', 'settle'] },
-        { id: 'map-loanType', keywords: ['種類', '種類', '貸款種類', '結清貸款種類', 'type', 'loan'] },
-        { id: 'map-authPhone', keywords: ['電話', '手機', '聯絡電話', '照會電話', 'phone', 'tel'] }
+        { id: 'map-bankName', keywords: ['結清銀行', '代償銀行', '銀行', '行庫', 'bank'] },
+        { id: 'map-borrowerName', keywords: ['借款人姓名', '匯款戶名', '姓名', '戶名', '借款人', 'name', 'customer'] },
+        { id: 'map-borrowerId', keywords: ['身分證字號', '身分證號碼', '身分證號', '身分證', 'id'] },
+        { id: 'map-remitAmount', keywords: ['匯款金額', '結清金額', '代償金額', '金額', '本利', 'amount'] },
+        { id: 'map-remitAccount', keywords: ['匯款帳號', '收款帳號', '帳號', '帳戶', 'account'] },
+        { id: 'map-remitBranch', keywords: ['匯款分行', '收款分行', '分行', 'branch'] },
+        { id: 'map-settleDate', keywords: ['預計結清日期', '結清日期', '預計', '預定', '日期', 'date', 'settle'] },
+        { id: 'map-loanType', keywords: ['結清貸款種類', '貸款種類', '種類', 'type', 'loan'] },
+        { id: 'map-authPhone', keywords: ['聯絡電話', '照會電話', '電話', '手機', 'phone', 'tel'] },
+        { id: 'map-authExt', keywords: ['分機號碼', '分機', 'ext'] }
       ];
+
+      // 記錄已被其他欄位選走的標頭，避免同一欄位重複配對到不同項目（例如「分行」誤配到「身分證字號」）
+      const usedHeaders = new Set();
 
       mappingConfigs.forEach(cfg => {
         const selectEl = document.getElementById(cfg.id);
+        if (!selectEl) return;
         selectEl.innerHTML = '<option value="" disabled selected>-- 請手動選取對應欄位 --</option>';
         selectEl.classList.remove('border-rose-400', 'bg-rose-50/20');
 
-        let bestMatchFound = false;
+        let bestMatchHeader = '';
 
         headers.forEach(h => {
           const option = document.createElement('option');
           option.value = h;
           option.textContent = h;
-
-          const lowerH = h.toLowerCase();
-          const matchWord = cfg.keywords.find(word => lowerH.includes(word));
-          if (matchWord && !bestMatchFound) {
-            option.selected = true;
-            bestMatchFound = true;
-          }
           selectEl.appendChild(option);
+
+          if (bestMatchHeader || usedHeaders.has(h)) return;
+          const lowerH = h.toLowerCase();
+          const matchWord = cfg.keywords.find(word => lowerH.includes(word.toLowerCase()));
+          if (matchWord) {
+            bestMatchHeader = h;
+          }
         });
+
+        if (bestMatchHeader) {
+          selectEl.value = bestMatchHeader;
+          usedHeaders.add(bestMatchHeader);
+        }
       });
 
       const modal = document.getElementById('headerMappingModal');
@@ -2868,12 +2889,14 @@ ${rawText}
     function confirmHeaderMapping() {
       const mapBank = document.getElementById('map-bankName').value;
       const mapName = document.getElementById('map-borrowerName').value;
+      const mapBorrowerId = document.getElementById('map-borrowerId').value;
       const mapAmount = document.getElementById('map-remitAmount').value;
       const mapAccount = document.getElementById('map-remitAccount').value;
       const mapBranch = document.getElementById('map-remitBranch').value;
       const mapSettleDate = document.getElementById('map-settleDate').value;
       const mapLoanType = document.getElementById('map-loanType').value;
       const mapAuthPhone = document.getElementById('map-authPhone').value;
+      const mapAuthExt = document.getElementById('map-authExt').value;
 
       // 檢查 5 核心必填是否為空
       let hasError = false;
@@ -2900,7 +2923,7 @@ ${rawText}
         return;
       }
 
-      // 重構對映為系統標準屬性 (預計結清日期、結清貸款種類、聯絡電話均妥善傳入)
+      // 重構對映為系統標準屬性 (預計結清日期、結清貸款種類、聯絡電話、身分證字號、分機均妥善傳入)
       const mappedRows = rawCsvRowsParsed.map(cols => {
         const getVal = (headerName) => {
           const idx = rawCsvHeaders.indexOf(headerName);
@@ -2911,13 +2934,14 @@ ${rawText}
           '結清銀行': getVal(mapBank),
           '借款人姓名': getVal(mapName),
           '匯款戶名': getVal(mapName),
+          '借款人身分證號': mapBorrowerId ? getVal(mapBorrowerId) : '',
           '匯款金額': getVal(mapAmount),
           '匯款帳號': getVal(mapAccount),
           '匯款分行': getVal(mapBranch),
           '預計結清日期': mapSettleDate ? getVal(mapSettleDate) : '',
           '結清貸款種類': mapLoanType ? getVal(mapLoanType) : '',
           '聯絡電話': mapAuthPhone ? getVal(mapAuthPhone) : '',
-          '借款人身分證號': '',
+          '分機': mapAuthExt ? getVal(mapAuthExt) : '',
           '收款銀行': '',
           '匯款備註': ''
         };
