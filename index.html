@@ -499,7 +499,7 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                   <label class="block text-sm font-medium text-slate-700">
                     借款人姓名 <span class="text-slate-400">(選填)</span>
                   </label>
-                  <div id="r3-status" class="text-[10px] bg-amber-50 text-amber-600 border border-amber-200/50 hover:bg-amber-100 font-semibold px-2 py-0.5 rounded-full cursor-pointer flex items-center gap-1 transition-all" onclick="triggerR3Upload()" title="點擊可手動載入電腦中的 R3_MEMBER.xlsx 借款人名冊（選取後將自動帶入姓名、身分證號、預計結清日期）">
+                  <div id="r3-status" class="text-[10px] bg-amber-50 text-amber-600 border border-amber-200/50 hover:bg-amber-100 font-semibold px-2 py-0.5 rounded-full cursor-pointer flex items-center gap-1 transition-all" onclick="triggerR3Upload()" title="點擊可手動載入電腦中的 R3_MEMBER.xlsx 借款人名冊（選取後將自動帶入姓名、身分證號、預計結清日期、代償銀行、代償分行、金額、帳號）">
                     <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
                     未偵測到 R3_MEMBER.xlsx
                   </div>
@@ -1563,6 +1563,79 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2 shrink-0">
         <button type="button" onclick="closeHeaderMappingModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700 transition-colors">取消</button>
         <button type="button" onclick="confirmHeaderMapping()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors">確認對應並解析</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= R3_MEMBER 借款人名冊 欄位對應 (Header Mapping) Modal ================= -->
+  <div id="borrowerHeaderMappingModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+      <div class="bg-slate-900 text-white p-5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2">
+          <i data-lucide="shuffle" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="text-base font-bold">R3_MEMBER 偵測到標頭不符，請手動選擇對應欄位</h3>
+        </div>
+        <button type="button" onclick="closeBorrowerHeaderMappingModal()" class="text-slate-400 hover:text-white transition-colors">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5 overflow-y-auto flex-1">
+        <p class="text-xs text-slate-500 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
+          系統無法自動辨識此借款人名冊檔案的標頭。請指定您 Excel 中各自項目的對應欄位名稱。標示 <span class="text-rose-500">*</span> 的欄位為核心必填項，其餘為選填項：
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- 核心必填 2 項 -->
+          <div class="space-y-4">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100">核心借款人欄位 (必填)</h4>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">借款人姓名欄位 <span class="text-rose-500">*</span></label>
+              <select id="map-r3-borrowerName" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">身分證字號欄位 <span class="text-rose-500">*</span></label>
+              <select id="map-r3-borrowerId" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+          </div>
+
+          <!-- 選填 5 項 -->
+          <div class="space-y-4">
+            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider pb-1 border-b border-slate-100">其他借款人資訊 (選填)</h4>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">預計結清日期 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-r3-settleDate" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">代償銀行 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-r3-repayBank" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">代償分行 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-r3-repayBranch" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">金額 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-r3-amount" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1.5">帳號 <span class="text-slate-400">(選填)</span></label>
+              <select id="map-r3-account" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all"></select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2 shrink-0">
+        <button type="button" onclick="closeBorrowerHeaderMappingModal()" class="px-5 py-2.5 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700 transition-colors">取消</button>
+        <button type="button" onclick="confirmBorrowerHeaderMapping()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors">確認對應並解析</button>
       </div>
     </div>
   </div>
@@ -3508,13 +3581,15 @@ ${rawText}
       const reader = new FileReader();
       reader.onload = function(e) {
         const arrayBuffer = e.target.result;
-        const parsedBorrowers = parseBorrowerListFromExcel(arrayBuffer);
-        if (parsedBorrowers && parsedBorrowers.length > 0) {
-          borrowerDirectory = parsedBorrowers;
+        const result = parseOrMapBorrowerExcel(arrayBuffer);
+        if (result.success) {
+          borrowerDirectory = result.data;
           updateR3Status(true, `已手動載入: ${file.name}`);
-          showToast(`🟢 成功解析「${file.name}」，已匯入 ${parsedBorrowers.length} 筆借款人資料！`);
+          showToast(`🟢 成功解析「${file.name}」，已匯入 ${result.data.length} 筆借款人資料！`);
+        } else if (result.opened) {
+          showToast(`⚠️「${file.name}」標頭無法自動辨識，請於彈出視窗手動指定對應欄位。`, 'info');
         } else {
-          showToast("❌ 解析失敗。請確認該 Excel 檔案是否包含「借款人姓名／身分證字號／預計結清日期」欄位。", "error");
+          showToast("❌ 解析失敗。請確認該 Excel 檔案是否包含資料內容。", "error");
         }
       };
       reader.readAsArrayBuffer(file);
@@ -3549,7 +3624,11 @@ ${rawText}
         const colKeywords = {
           borrowerName: ['借款人姓名', '姓名', '借款人'],
           borrowerId: ['身分證字號', '身分證', '借款人身分證'],
-          settleDate: ['預計結清日期', '結清日期', '日期']
+          settleDate: ['預計結清日期', '結清日期', '日期'],
+          repayBank: ['代償銀行', '結清銀行', '銀行'],
+          repayBranch: ['代償分行', '分行'],
+          amount: ['金額', '本利', '代償金額', '結清金額', '匯款金額'],
+          account: ['帳號', '帳戶', '匯款帳號']
         };
 
         let headerRowIndex = -1;
@@ -3593,7 +3672,12 @@ ${rawText}
           const rawDateVal = colIndexMap.settleDate !== undefined ? row[colIndexMap.settleDate] : '';
           const settleDate = normalizeDateCell(rawDateVal);
 
-          resultArr.push({ borrowerName, borrowerId, settleDate });
+          const repayBank = colIndexMap.repayBank !== undefined ? String(row[colIndexMap.repayBank] || '').trim() : '';
+          const repayBranch = colIndexMap.repayBranch !== undefined ? String(row[colIndexMap.repayBranch] || '').trim() : '';
+          const amount = colIndexMap.amount !== undefined ? String(row[colIndexMap.amount] || '').trim() : '';
+          const account = colIndexMap.account !== undefined ? String(row[colIndexMap.account] || '').trim() : '';
+
+          resultArr.push({ borrowerName, borrowerId, settleDate, repayBank, repayBranch, amount, account });
         }
 
         return resultArr.length > 0 ? resultArr : null;
@@ -3601,6 +3685,178 @@ ${rawText}
         console.error("解析 R3_MEMBER 遭遇異常:", err);
         return null;
       }
+    }
+
+    // ============ R3_MEMBER 欄位手動對應（標頭不符時的備援方案） ============
+    // 沿用「匯入 Excel 或 CSV」功能中已驗證好用的欄位對應 Modal 體驗，
+    // 讓借款人名冊在自動辨識失敗時，也能由使用者手動指定各欄位對應關係。
+    let rawBorrowerHeaders = [];
+    let rawBorrowerRowsParsed = [];
+
+    // 讀取整份 Excel 為二維陣列，並猜測最可能的表頭列（前 15 列中，非空儲存格數量最多的一列）
+    function readBorrowerExcelGrid(arrayBuffer) {
+      const data = new Uint8Array(arrayBuffer);
+      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true });
+      if (!rows || rows.length === 0) return null;
+
+      let bestIdx = 0;
+      let bestCount = -1;
+      for (let r = 0; r < Math.min(rows.length, 15); r++) {
+        const row = rows[r] || [];
+        const nonEmptyCount = row.filter(c => String(c || '').trim() !== '').length;
+        if (nonEmptyCount > bestCount) {
+          bestCount = nonEmptyCount;
+          bestIdx = r;
+        }
+      }
+
+      const headerRow = rows[bestIdx] || [];
+      const headers = headerRow.map((h, idx) => {
+        const v = String(h || '').trim();
+        return v || `欄位${idx + 1}`;
+      });
+      const dataRows = rows.slice(bestIdx + 1);
+
+      return { headers, dataRows };
+    }
+
+    // 嘗試自動解析 R3_MEMBER；失敗時開啟欄位手動對應 Modal 供使用者指定
+    function parseOrMapBorrowerExcel(arrayBuffer) {
+      const parsed = parseBorrowerListFromExcel(arrayBuffer);
+      if (parsed && parsed.length > 0) {
+        return { success: true, data: parsed };
+      }
+
+      try {
+        const grid = readBorrowerExcelGrid(arrayBuffer);
+        if (!grid || grid.dataRows.length === 0) {
+          return { success: false, opened: false };
+        }
+        rawBorrowerHeaders = grid.headers;
+        rawBorrowerRowsParsed = grid.dataRows;
+        openBorrowerHeaderMappingModal(grid.headers);
+        return { success: false, opened: true };
+      } catch (err) {
+        console.error("R3_MEMBER 備援讀取失敗:", err);
+        return { success: false, opened: false };
+      }
+    }
+
+    // 開啟 R3 欄位對應 Modal，並依關鍵字預先選取最可能的對應欄位
+    function openBorrowerHeaderMappingModal(headers) {
+      const mappingConfigs = [
+        { id: 'map-r3-borrowerName', keywords: ['借款人姓名', '姓名', '借款人', 'name'] },
+        { id: 'map-r3-borrowerId', keywords: ['身分證字號', '身分證', 'id'] },
+        { id: 'map-r3-settleDate', keywords: ['預計結清日期', '結清日期', '日期', 'date'] },
+        { id: 'map-r3-repayBank', keywords: ['代償銀行', '結清銀行', '銀行', 'bank'] },
+        { id: 'map-r3-repayBranch', keywords: ['代償分行', '分行', 'branch'] },
+        { id: 'map-r3-amount', keywords: ['金額', '本利', '代償金額', '結清金額', '匯款金額', 'amount'] },
+        { id: 'map-r3-account', keywords: ['帳號', '帳戶', '匯款帳號', 'account'] }
+      ];
+
+      mappingConfigs.forEach(cfg => {
+        const selectEl = document.getElementById(cfg.id);
+        if (!selectEl) return;
+        selectEl.innerHTML = '<option value="" disabled selected>-- 請手動選取對應欄位 --</option>';
+        selectEl.classList.remove('border-rose-400', 'bg-rose-50/20');
+
+        let bestMatchFound = false;
+
+        headers.forEach((h, idx) => {
+          const option = document.createElement('option');
+          option.value = String(idx);
+          option.textContent = h;
+
+          const lowerH = h.toLowerCase();
+          const matchWord = cfg.keywords.find(word => lowerH.includes(word.toLowerCase()));
+          if (matchWord && !bestMatchFound) {
+            option.selected = true;
+            bestMatchFound = true;
+          }
+          selectEl.appendChild(option);
+        });
+      });
+
+      const modal = document.getElementById('borrowerHeaderMappingModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function closeBorrowerHeaderMappingModal() {
+      const modal = document.getElementById('borrowerHeaderMappingModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // 使用者確認欄位對應後，依指定欄位索引重新組建借款人名冊
+    function confirmBorrowerHeaderMapping() {
+      const mapName = document.getElementById('map-r3-borrowerName').value;
+      const mapId = document.getElementById('map-r3-borrowerId').value;
+      const mapSettleDate = document.getElementById('map-r3-settleDate').value;
+      const mapRepayBank = document.getElementById('map-r3-repayBank').value;
+      const mapRepayBranch = document.getElementById('map-r3-repayBranch').value;
+      const mapAmount = document.getElementById('map-r3-amount').value;
+      const mapAccount = document.getElementById('map-r3-account').value;
+
+      // 檢查 2 項核心必填是否為空
+      let hasError = false;
+      const requiredSelectors = [
+        { id: 'map-r3-borrowerName', val: mapName },
+        { id: 'map-r3-borrowerId', val: mapId }
+      ];
+      requiredSelectors.forEach(sel => {
+        const el = document.getElementById(sel.id);
+        if (!sel.val) {
+          el.classList.add('border-rose-400', 'bg-rose-50/20');
+          hasError = true;
+        } else {
+          el.classList.remove('border-rose-400', 'bg-rose-50/20');
+        }
+      });
+
+      if (hasError) {
+        showToast('請完成所有必填欄位之對應配置！', 'error');
+        return;
+      }
+
+      const getVal = (cols, colIdxStr) => {
+        if (colIdxStr === '') return '';
+        const idx = parseInt(colIdxStr, 10);
+        return cols[idx] !== undefined && cols[idx] !== null ? String(cols[idx]).trim() : '';
+      };
+
+      const resultArr = [];
+      rawBorrowerRowsParsed.forEach(cols => {
+        const borrowerName = getVal(cols, mapName);
+        const borrowerId = getVal(cols, mapId);
+        if (!borrowerName || !borrowerId) return; // 兩個關鍵欄位缺一則跳過該列
+
+        const rawDateVal = mapSettleDate !== '' ? cols[parseInt(mapSettleDate, 10)] : '';
+        const settleDate = normalizeDateCell(rawDateVal);
+
+        resultArr.push({
+          borrowerName,
+          borrowerId,
+          settleDate,
+          repayBank: getVal(cols, mapRepayBank),
+          repayBranch: getVal(cols, mapRepayBranch),
+          amount: getVal(cols, mapAmount),
+          account: getVal(cols, mapAccount)
+        });
+      });
+
+      if (resultArr.length === 0) {
+        showToast('對應後找不到任何有效資料列，請確認欄位選擇是否正確。', 'error');
+        return;
+      }
+
+      borrowerDirectory = resultArr;
+      updateR3Status(true, `已手動對應載入：共 ${resultArr.length} 筆`);
+      closeBorrowerHeaderMappingModal();
+      showToast(`🎉 欄位標頭對應成功！已匯入 ${resultArr.length} 筆借款人資料。`);
     }
 
     // 將 Excel 儲存格值正規化為 YYYY-MM-DD：若是真正的日期儲存格(Date物件)直接取年月日，
@@ -3633,9 +3889,18 @@ ${rawText}
 
       let html = '';
       borrowerDirectory.forEach((borrower, idx) => {
+        const repayInfoParts = [borrower.repayBank, borrower.repayBranch].filter(Boolean);
+        if (borrower.amount) {
+          const amtDigits = String(borrower.amount).replace(/[^\d]/g, '');
+          if (amtDigits) repayInfoParts.push(`$${Number(amtDigits).toLocaleString()}`);
+        }
+        const repayInfo = repayInfoParts.join(' ');
         html += `
-          <div data-borrower-idx="${idx}" onclick="selectBorrowerOption(${idx})" class="px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm cursor-pointer font-medium border-b border-slate-50/60 transition-colors flex items-center justify-between">
-            <span>${escapeHtml(borrower.borrowerName)}</span>
+          <div data-borrower-idx="${idx}" onclick="selectBorrowerOption(${idx})" class="px-4 py-2.5 hover:bg-slate-50 text-slate-700 text-sm cursor-pointer font-medium border-b border-slate-50/60 transition-colors flex items-center justify-between gap-2">
+            <span class="flex flex-col">
+              <span>${escapeHtml(borrower.borrowerName)}</span>
+              ${repayInfo ? `<span class="text-[10px] text-slate-400 font-normal">${escapeHtml(repayInfo)}</span>` : ''}
+            </span>
             <span class="text-xs text-slate-400 font-mono tracking-wider">${escapeHtml(borrower.borrowerId)}</span>
           </div>
         `;
@@ -3671,6 +3936,22 @@ ${rawText}
       if (borrower.settleDate) {
         document.getElementById('settleDate').value = borrower.settleDate;
         calculateDayOfWeek();
+      }
+      if (borrower.repayBank) {
+        document.getElementById('bankName').value = borrower.repayBank;
+      }
+      if (borrower.repayBranch) {
+        document.getElementById('remitBranch').value = borrower.repayBranch;
+      }
+      if (borrower.amount) {
+        const amtInput = document.getElementById('remitAmount');
+        amtInput.value = borrower.amount.replace(/[^\d]/g, '');
+        handleAmountBlur(amtInput);
+      }
+      if (borrower.account) {
+        const accInput = document.getElementById('remitAccount');
+        accInput.value = borrower.account.replace(/[^\d]/g, '');
+        handleAccountBlur(accInput);
       }
 
       document.getElementById('borrowerId').classList.remove('border-red-500');
