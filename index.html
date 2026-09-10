@@ -353,11 +353,11 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
                 <i data-lucide="zap" class="w-4 h-4 fill-slate-950"></i>
                 ⚡ 載入測試 Demo 數據
               </button>
-              <button type="button" onclick="triggerCsvImport()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md">
+              <button type="button" onclick="triggerCsvImport()" class="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-md" title="支援 CSV、Excel 或 Markdown(.md) 表格檔案">
                 <i data-lucide="upload" class="w-4 h-4"></i>
-                📥 匯入 Excel 或 CSV
+                📥 匯入 Excel／CSV／MD
               </button>
-              <input type="file" id="csvImportInput" accept=".csv,text/csv,.xls,.xlsx" class="hidden" onchange="handleCsvFileSelected(event)">
+              <input type="file" id="csvImportInput" accept=".csv,text/csv,.xls,.xlsx,.md,.markdown,text/markdown" class="hidden" onchange="handleCsvFileSelected(event)">
             </div>
           </div>
           <div class="text-blue-100 text-sm md:text-base leading-relaxed space-y-4">
@@ -1476,15 +1476,22 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
       <div class="bg-slate-900 text-white p-5 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2">
           <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
-          <h3 class="text-base font-bold">CSV/Excel 內含多筆資料，請選擇要匯入表單的一筆</h3>
+          <h3 class="text-base font-bold">CSV/Excel 內含多筆結清資料</h3>
         </div>
         <button type="button" onclick="closeCsvImportModal()" class="text-slate-400 hover:text-white transition-colors">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
-      <div id="csvImportList" class="p-5 space-y-2 overflow-y-auto"></div>
+      <div class="px-5 pt-4 pb-2 shrink-0">
+        <button type="button" onclick="batchImportCsvRows()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-colors shadow-sm">
+          <i data-lucide="layers" class="w-4 h-4"></i>
+          <span id="batchImportBtnLabel">一鍵批次匯入全部</span>
+        </button>
+        <p class="text-[11px] text-slate-400 mt-2 text-center">或者，從下方清單選擇單一筆先帶入表單檢視、確認無誤後再自行提交</p>
+      </div>
+      <div id="csvImportList" class="px-5 pb-5 space-y-2 overflow-y-auto"></div>
       <div class="p-4 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 shrink-0">
-        提示：選擇後將直接帶入上方「填寫問卷」表單欄位，您仍可在提交前自由編輯修改。
+        提示：批次匯入會直接以目前已選擇的代理人資料，將每一筆結清資料送入後台列表；選擇單筆則只會帶入上方表單欄位，您仍可在提交前自由編輯修改。
       </div>
     </div>
   </div>
@@ -2725,6 +2732,8 @@ ${rawText}
       const file = event.target.files[0];
       if (!file) return;
 
+      const isMarkdown = /\.(md|markdown)$/i.test(file.name);
+
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -2732,11 +2741,29 @@ ${rawText}
           if (text.charCodeAt(0) === 0xFEFF) {
             text = text.slice(1); // 去除 UTF-8 BOM
           }
-          
-          // 雙層結構化解析：先將純文字拆解為二維矩陣（Grid）
-          const grid = parseCsvToGrid(text);
+
+          // 雙層結構化解析：先將純文字拆解為二維矩陣（Grid）。CSV 與 Markdown 表格分別使用對應的解析器，
+          // 但輸出格式一致，後續欄位對應/批次匯入等流程可完全共用。
+          const grid = isMarkdown ? parseMarkdownTableToGrid(text) : parseCsvToGrid(text);
+
+          if (isMarkdown && (!grid || grid.length < 2)) {
+            // MD 不是表格格式：改嘗試「清單/敘述型」解析（例如「## 標題」+「**欄位**：值」或「- 欄位：值」）
+            const narrativeRows = parseMarkdownNarrativeToRows(text);
+            if (narrativeRows.length > 0) {
+              if (narrativeRows.length === 1) {
+                populateFormFromCsvRow(narrativeRows[0]);
+              } else {
+                openCsvImportModal(narrativeRows);
+              }
+              return;
+            }
+          }
+
           if (!grid || grid.length < 2) {
-            showToast('CSV 檔案內容為空，或格式無法辨識。', 'error');
+            const msg = isMarkdown
+              ? 'MD 檔案內找不到可辨識的表格或清單內容，請確認格式（表格需含標頭列與分隔列；清單型需有「標題：值」或「- 標題：值」格式）。'
+              : 'CSV 檔案內容為空，或格式無法辨識。';
+            showToast(msg, 'error');
             return;
           }
 
@@ -2761,8 +2788,8 @@ ${rawText}
             openHeaderMappingModal(headers);
           }
         } catch (err) {
-          console.error('CSV 解析失敗：', err);
-          showToast('CSV 檔案解析失敗，請確認格式。', 'error');
+          console.error('檔案解析失敗：', err);
+          showToast(isMarkdown ? 'MD 檔案解析失敗，請確認格式。' : 'CSV 檔案解析失敗，請確認格式。', 'error');
         }
       };
       reader.onerror = () => {
@@ -2814,6 +2841,178 @@ ${rawText}
         rows.push(row);
       }
       return rows.filter(r => r.length > 1 || (r.length === 1 && r[0].trim() !== ''));
+    }
+
+    // 將 Markdown 表格文字解析為二維矩陣（Grid），輸出格式與 parseCsvToGrid 相容，
+    // 可直接沿用後續「標頭比對／欄位手動對應／批次匯入」等既有流程。
+    // 支援標準 GFM 表格語法，例如：
+    //   | 結清銀行 | 借款人姓名 | 匯款金額 |
+    //   |---|---|---|
+    //   | 華南 | 王小明 | 500000 |
+    function parseMarkdownTableToGrid(text) {
+      const lines = text.split(/\r?\n/);
+
+      // 分隔列判斷：整列僅由 |、-、:、空白組成，例如 |---|:---:|---|
+      const isSeparatorRow = (line) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(line);
+      const isTableRow = (line) => line.includes('|');
+
+      const splitRow = (line) => {
+        let trimmed = line.trim();
+        if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+        if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+        // 支援跳脫符號 \| 表示儲存格內的實際「|」字元
+        return trimmed.split(/(?<!\\)\|/).map(cell => cell.replace(/\\\|/g, '|').trim());
+      };
+
+      const rows = [];
+      for (const line of lines) {
+        if (!isTableRow(line)) continue;
+        if (isSeparatorRow(line)) continue; // 略過 |---|---| 分隔列，不當成資料
+        rows.push(splitRow(line));
+      }
+
+      return rows.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ''));
+    }
+
+    // ============ MD 清單/敘述型（非表格）解析 ============
+    // 適用於類似「## 貸款匯款結清資料詢問」搭配「**銀行**：006 合庫」「- 匯款帳號：xxx」
+    // 這種標題 + 條列/粗體 key:value 的匯出格式（例如系統本身寄送 Email 的內容存成 .md）。
+    // 解析結果直接產出與 populateFormFromCsvRow() 相容的中文欄位鍵值物件，可完全沿用既有的
+    // 「單筆自動帶入 / 多筆開啟批次匯入視窗」下游流程。
+
+    // 在指定文字中搜尋關鍵字附近的「可以／不可／是／否」語意，轉換為表單期望的「是」/「否」
+    function extractYesNoNear(text, keywordVariants) {
+      for (const kw of keywordVariants) {
+        const idx = text.indexOf(kw);
+        if (idx === -1) continue;
+        const after = text.slice(idx + kw.length, idx + kw.length + 20);
+        const m = after.match(/[:：]?\s*(不可以|不可|可以|是|否|可)/);
+        if (m) {
+          const hit = m[1];
+          return (hit.includes('不可') || hit === '否') ? '否' : '是';
+        }
+      }
+      return '';
+    }
+
+    // 解析單一筆記錄的敘述文字區塊，依標題關鍵字切換 context 以避免「姓名」「電話」等通用標籤在不同區塊被誤判
+    function parseSingleNarrativeBlock(blockText) {
+      const lines = blockText.split(/\r?\n/);
+      const SECTION = { MAIN: 'main', REMIT: 'remit', AUTH: 'auth', FOLLOWUP: 'followup' };
+      let currentSection = SECTION.MAIN;
+
+      const row = {};
+      const setIfEmpty = (key, val) => {
+        if (val && !row[key]) row[key] = val;
+      };
+
+      const followupLines = [];
+
+      for (const rawLine of lines) {
+        const trimmed = rawLine.trim();
+        if (!trimmed) continue;
+
+        const headingMatch = trimmed.match(/^#{1,3}\s*(.+)$/);
+        if (headingMatch) {
+          const headingText = headingMatch[1];
+          if (headingText.includes('匯款資訊')) currentSection = SECTION.REMIT;
+          else if (headingText.includes('照會') || headingText.includes('窗口')) currentSection = SECTION.AUTH;
+          else if (headingText.includes('後續作業') || headingText.includes('清償證明')) currentSection = SECTION.FOLLOWUP;
+          else currentSection = SECTION.MAIN;
+          continue;
+        }
+
+        if (currentSection === SECTION.FOLLOWUP) {
+          followupLines.push(trimmed);
+          continue; // 後續作業區塊常為敘述句，稍後統一以關鍵字比對處理
+        }
+
+        // 去除 markdown 粗體符號(**)、項目符號(-/•)、數字編號(1. 1) 1、)
+        let clean = trimmed.replace(/\*/g, '');
+        clean = clean.replace(/^[-•]\s*/, '');
+        clean = clean.replace(/^\d+[\.\)、]\s*/, '');
+
+        const colonIdx = Math.max(clean.lastIndexOf('：'), clean.lastIndexOf(':'));
+        if (colonIdx <= 0) continue;
+
+        const label = clean.slice(0, colonIdx).trim();
+        let value = clean.slice(colonIdx + 1).trim();
+        if (!value || value === '未填寫' || value === '無') continue;
+
+        if (currentSection === SECTION.MAIN) {
+          if (label.includes('身分證')) setIfEmpty('借款人身分證號', value);
+          else if (label.includes('借款人姓名')) setIfEmpty('借款人姓名', value);
+          else if (label.includes('貸款種類') || label.includes('種類')) setIfEmpty('結清貸款種類', value.replace(/[()（）]/g, '').trim());
+          else if (label.includes('日期')) {
+            let dateVal = value.replace(/[（(][^）)]*[）)]/g, '').trim(); // 去除「(星期四)」等附加文字
+            if (/^\d{1,2}月\d{1,2}日$/.test(dateVal)) {
+              dateVal = `${new Date().getFullYear()}年${dateVal}`; // 沒有年份時，補上系統目前年份
+            }
+            setIfEmpty('預計結清日期', dateVal);
+          }
+          else if (label.includes('銀行')) setIfEmpty('結清銀行', value);
+        } else if (currentSection === SECTION.REMIT) {
+          if (label.includes('帳號')) setIfEmpty('匯款帳號', value);
+          else if (label.includes('分行')) setIfEmpty('匯款分行', value);
+          else if (label.includes('戶名')) setIfEmpty('匯款戶名', value);
+          else if (label.includes('金額')) setIfEmpty('匯款金額', value);
+          else if (label.includes('備註')) setIfEmpty('匯款備註', value);
+          else if (label.includes('銀行')) setIfEmpty('收款銀行', value);
+        } else if (currentSection === SECTION.AUTH) {
+          if (label.includes('分機')) setIfEmpty('分機', value);
+          else if (label.includes('電話')) setIfEmpty('聯絡電話', value);
+          else if (label.includes('稱謂')) setIfEmpty('窗口稱謂', value);
+          else if (label.includes('姓名')) setIfEmpty('永豐照會窗口姓名', value);
+        }
+      }
+
+      // 後續作業區塊：常見為敘述句（例如「原貸款行可代為 線上塗銷：可以」），改用關鍵字鄰近比對
+      const followupText = followupLines.join(' ');
+      const onlineVal = extractYesNoNear(followupText, ['線上塗銷']);
+      if (onlineVal) row['可否線上塗銷'] = onlineVal;
+      const mailVal = extractYesNoNear(followupText, ['郵寄清償證明']);
+      if (mailVal) row['可否郵寄清償證明'] = mailVal;
+      const pickUpVal = extractYesNoNear(followupText, ['親自領取', '需否親領', '親領']);
+      if (pickUpVal) row['需否親領'] = pickUpVal;
+      const addrMatch = followupText.match(/(掛號寄送地址|寄送地址)[:：]\s*([^\s，,、]+(?:[^\n]*)?)/);
+      if (addrMatch) row['掛號寄送地址'] = addrMatch[2].trim();
+      const daysMatch = followupText.match(/(\d+)\s*個?工作天/);
+      if (daysMatch) row['工作天數'] = daysMatch[1];
+
+      return row;
+    }
+
+    // 將整份 MD 清單型文字拆解為多筆記錄（依第一個出現的標題文字，重複出現處視為新記錄的起點）
+    function parseMarkdownNarrativeToRows(text) {
+      const lines = text.split(/\r?\n/);
+      const headingRegex = /^#{1,3}\s*(.+?)\s*$/;
+      const headingLineIndices = [];
+      lines.forEach((line, idx) => {
+        if (headingRegex.test(line.trim())) headingLineIndices.push(idx);
+      });
+
+      let recordStartIndices = [];
+      if (headingLineIndices.length > 0) {
+        const firstHeadingText = lines[headingLineIndices[0]].replace(/^#{1,3}\s*/, '').trim();
+        recordStartIndices = headingLineIndices.filter(
+          idx => lines[idx].replace(/^#{1,3}\s*/, '').trim() === firstHeadingText
+        );
+      }
+
+      let blocks = [];
+      if (recordStartIndices.length > 1) {
+        for (let i = 0; i < recordStartIndices.length; i++) {
+          const start = recordStartIndices[i];
+          const end = (i + 1 < recordStartIndices.length) ? recordStartIndices[i + 1] : lines.length;
+          blocks.push(lines.slice(start, end).join('\n'));
+        }
+      } else {
+        blocks = [text]; // 只找到 0～1 個標題，視整份文件為單一筆記錄
+      }
+
+      return blocks
+        .map(parseSingleNarrativeBlock)
+        .filter(row => row && (row['借款人姓名'] || row['匯款戶名']));
     }
 
     // 將資料網格轉成物件形式
@@ -2959,6 +3158,9 @@ ${rawText}
 
     function openCsvImportModal(rows) {
       csvImportPendingRows = rows;
+      const batchLabel = document.getElementById('batchImportBtnLabel');
+      if (batchLabel) batchLabel.textContent = `一鍵批次匯入全部 ${rows.length} 筆`;
+
       const listContainer = document.getElementById('csvImportList');
       listContainer.innerHTML = '';
 
@@ -4623,6 +4825,136 @@ ${rawText}
           toast.remove();
         }, 300);
       }, 4000);
+    }
+
+    // 從目前表單欄位收集資料並組建一筆結清資料紀錄（供批次匯入重複呼叫，不觸發表單送出/清空流程）
+    // 驗證邏輯與 handleFormSubmit 一致：借款人身分證字號格式、匯款戶名/借款人姓名擇一必填、需已選定代理人
+    function collectRecordFromForm() {
+      const bankName = document.getElementById('bankName').value.trim();
+      const settleDate = document.getElementById('settleDate').value;
+      const loanType = getSelectedLoanType();
+      const borrowerName = document.getElementById('borrowerName').value.trim();
+      const borrowerId = document.getElementById('borrowerId').value.trim();
+
+      if (borrowerId && !validateTaiwanID(borrowerId)) {
+        return { record: null, error: `身分證字號格式或檢查碼有誤（${borrowerId}）` };
+      }
+
+      let remitName = document.getElementById('remitName').value.trim();
+      if (!remitName) {
+        if (!borrowerName) {
+          return { record: null, error: '缺少「匯款戶名」或「借款人姓名」' };
+        }
+        remitName = borrowerName;
+        document.getElementById('remitName').value = borrowerName;
+      }
+
+      const remitAmount = document.getElementById('remitAmount').value.replace(/,/g, '').trim();
+      const remitAccount = document.getElementById('remitAccount').value.trim();
+
+      let remitBank = document.getElementById('remitBank').value.trim();
+      if (!remitBank) {
+        remitBank = bankName;
+      }
+      remitBank = remitBank.replace(/^\d{3}\s*/, '').trim();
+
+      const remitBranch = document.getElementById('remitBranch').value.trim();
+      const remitMemo = document.getElementById('remitMemo').value.trim() || '無';
+
+      const authName = document.getElementById('authName').value.trim();
+      const authGender = document.getElementById('authGender').value;
+      const authPhone = document.getElementById('authPhone').value.trim();
+      const authExt = document.getElementById('authExt').value.trim() || '';
+
+      const canOnlineCancel = document.querySelector('input[name="canOnlineCancel"]:checked').value === "true";
+      const canMailCertificate = document.querySelector('input[name="canMailCertificate"]:checked').value === "true";
+      const mailAddress = canMailCertificate ? document.getElementById('mailAddress').value.trim() : '';
+
+      const needPickUp = document.querySelector('input[name="needPickUp"]:checked').value === "true";
+      const pickUpDays = needPickUp ? document.getElementById('pickUpDays').value.trim() : '';
+
+      const signatureText = document.getElementById('signatureText').value.trim();
+
+      const dayNames = ["日", "一", "二", "三", "四", "五", "六"];
+      const dateObj = new Date(settleDate);
+      const dayOfWeek = isNaN(dateObj.getTime()) ? '' : `星期${dayNames[dateObj.getDay()]}`;
+
+      const memberProfile = getActiveMemberProfile();
+      if (!memberProfile) {
+        return { record: null, error: '找不到會員名冊資料（請先選擇代理人）' };
+      }
+
+      const record = {
+        id: 'sub-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        docType: 'remit',
+        bankName,
+        settleDate,
+        dayOfWeek,
+        loanType,
+        borrowerName,
+        borrowerId,
+        remitBank,
+        remitName,
+        remitAmount,
+        remitAccount,
+        remitBranch,
+        remitMemo,
+        authName,
+        authGender,
+        authPhone,
+        authExt,
+        canOnlineCancel,
+        canMailCertificate,
+        mailAddress,
+        needPickUp,
+        pickUpDays,
+        signatureText,
+        agentName: memberProfile.agentName,
+        agentId: memberProfile.agentId,
+        agentPhone: memberProfile.agentPhone,
+        agentEmail: memberProfile.email
+      };
+
+      return { record, error: null };
+    }
+
+    // CSV/Excel 內含多筆結清資料時，一次全部匯入後台列表（依序將每列資料帶入表單、驗證、寫入 loanSubmissions）
+    function batchImportCsvRows() {
+      if (!csvImportPendingRows || csvImportPendingRows.length === 0) return;
+
+      if (!getActiveMemberProfile()) {
+        showToast('❌ 請先於上方選擇代理人（R2_MEMBER 名冊），再進行批次匯入！', 'error');
+        return;
+      }
+
+      const total = csvImportPendingRows.length;
+      const errors = [];
+      let successCount = 0;
+
+      csvImportPendingRows.forEach((row, idx) => {
+        populateFormFromCsvRow(row);
+        const { record, error } = collectRecordFromForm();
+        if (record) {
+          loanSubmissions.unshift(record);
+          successCount++;
+        } else {
+          const label = row['借款人姓名'] || row['匯款戶名'] || `第 ${idx + 1} 筆`;
+          errors.push(`${label}：${error}`);
+        }
+      });
+
+      closeCsvImportModal();
+      updateMetrics();
+      switchMode('admin');
+
+      if (successCount > 0) {
+        showToast(`🎉 批次匯入完成！成功寫入 ${successCount} / ${total} 筆結清資料。`);
+      }
+      if (errors.length > 0) {
+        console.warn('批次匯入失敗清單:', errors);
+        const preview = errors.slice(0, 3).join('；');
+        showToast(`⚠️ 有 ${errors.length} 筆匯入失敗：${preview}${errors.length > 3 ? ' 等，詳見主控台紀錄' : ''}`, 'error');
+      }
     }
 
     function handleFormSubmit(event, saveAsNew = false) {
